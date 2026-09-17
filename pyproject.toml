@@ -1,0 +1,22 @@
+[project]
+name = "replay-workspace"
+version = "0.1.0"
+description = "Replay — a flight recorder and rewind button for AI agents"
+requires-python = ">=3.12"
+dependencies = ["replay-events", "replay"]
+
+[tool.uv.sources]
+replay-events = { workspace = true }
+replay = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/events", "packages/replay"]
+
+[dependency-groups]
+dev = ["pytest>=8", "hypothesis>=6"]
+
+[tool.pytest.ini_options]
+pythonpath = ["packages/events/src", "packages/replay/src", "tests"]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error"]

@@ -1,0 +1,35 @@
+# One pattern per line. Git treats a space-separated line as a single literal
+# pattern and silently ignores nothing — verified by tests/test_repo_hygiene.py.
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.hypothesis/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+cdk.out/
+node_modules/
+dist/
+build/
+*.egg-info/
+infra/build/
+web/dist/
+web/node_modules/
+test-results/
+playwright-report/
+.verify-claims-inflight
+.verify-claims-backups/
+.verify-claims-journal
+.env
+.env.*
+replay.*.db
+replay.*.db-journal
+replay.*.payloads/
+.DS_Store
+# Generated from packages/events — the single schema source. Never edit by hand.
+web/src/types/events.d.ts
+packages/events/schema.json
