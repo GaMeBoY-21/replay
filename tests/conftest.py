@@ -12,6 +12,7 @@ mutated module is already imported.
 
 from __future__ import annotations
 
+import os
 import pathlib
 
 import pytest
@@ -19,9 +20,13 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 INFLIGHT = REPO_ROOT / ".verify-claims-inflight"
 
+# The harness itself has to run pytest against mutated source — that is the
+# whole point of it. It opts in explicitly; nothing else does.
+HARNESS_OPT_IN = os.environ.get("REPLAY_VERIFY") == "1"
+
 
 def pytest_collection(session: pytest.Session) -> None:
-    if INFLIGHT.exists():
+    if INFLIGHT.exists() and not HARNESS_OPT_IN:
         raise pytest.UsageError(
             f"{INFLIGHT.name} exists: `make verify` is mutating source right now. "
             "Running pytest against deliberately-broken source has previously "
