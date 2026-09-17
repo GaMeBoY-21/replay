@@ -16,6 +16,14 @@ class DivergenceError(ReplayError):
     """
 
 
+class UnresolvableRun(ReplayError):
+    """A run in a fork chain has no metadata.
+
+    Without it there is no parent pointer, and treating the run as a root would
+    return a shorter, wrong, entirely plausible log with its prefix missing.
+    """
+
+
 class ReplayExhausted(ReplayError):
     """Replay asked for an effect the log does not contain."""
 

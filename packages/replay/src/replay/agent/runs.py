@@ -76,8 +76,10 @@ def _drive(store, metadata: RunMetadata, ctx: RunContext, factory: AgentFactory,
 def record(store, factory: AgentFactory, prompt, *, run_id: str | None = None,
            breakers: Breakers | None = None) -> RunOutcome:
     run_id = run_id or new_run_id()
-    ctx = RunContext(run_id, store, LiveMode(), breakers=breakers or _unbounded())
-    return _drive(store, RunMetadata(run_id=run_id), ctx, factory, prompt)
+    breakers = breakers or _unbounded()
+    ctx = RunContext(run_id, store, LiveMode(), breakers=breakers)
+    metadata = RunMetadata(run_id=run_id, breaker_config=breakers.config.model_dump())
+    return _drive(store, metadata, ctx, factory, prompt)
 
 
 def replay(store, run_id: str, factory: AgentFactory, prompt, *, into=None) -> RunOutcome:
@@ -102,29 +104,33 @@ def fork(store, parent_run_id: str, at_seq: int, mutation: Result, factory: Agen
     # The fork continues its parent's eid sequence. Restarting at zero gives the
     # resolved chain duplicate eids, invisible until something sorts by eid.
     eid_base = parent.next_eid
+    breakers = breakers or _unbounded()
     metadata = RunMetadata(
         run_id=run_id,
         parent_run_id=parent_run_id,
         forked_at_seq=at_seq,
-        # The replayed prefix appends nothing, so the fork's first two events are
-        # the request and the substituted completion at the fork point.
+        # Predicted, because lineage is written before any event exists: the
+        # replayed prefix appends nothing, so the substituted completion is the
+        # fork's second event. The kernel checks the prediction against the eid
+        # its append actually returns, and raises if they differ.
         mutated_event_id=eid_base + 1,
         eid_base=eid_base,
+        breaker_config=breakers.config.model_dump(),
     )
     ctx = RunContext(run_id, store, ForkMode(at=at_seq, mutation=mutation), log=parent,
-                     breakers=breakers or _unbounded(), eid_base=eid_base)
+                     breakers=breakers, eid_base=eid_base)
+    ctx.expected_mutated_event_id = metadata.mutated_event_id
     return _drive(store, metadata, ctx, factory, prompt)
 
 
 def resume(store, run_id: str, factory: AgentFactory, prompt, *,
-           breaker_config: BreakerConfig | None = None, breaker_overrides: dict | None = None,
-           new_run_id_: str | None = None) -> RunOutcome:
+           breaker_overrides: dict | None = None, new_run_id_: str | None = None) -> RunOutcome:
     """Replay a halted run to its halt, then continue live. A fork with no mutation.
 
-    `breaker_config` is the configuration the halted run used; it is not in the
-    log, so the caller supplies it. `breaker_overrides` raises a ceiling for this
-    attempt. Without one, replaying to the halt and re-running the same step
-    against the same ceiling trips the same breaker again, at the same seq.
+    The ceilings come from the halted run's own metadata. `breaker_overrides`
+    raises one for this attempt; without one, replaying to the halt and
+    re-running the same step against the same ceiling trips the same breaker
+    again, at the same seq.
     """
     log = resolve(store, run_id)
     trips = [e for e in log.events if e.type == "BreakerTripped"]
@@ -132,10 +138,14 @@ def resume(store, run_id: str, factory: AgentFactory, prompt, *,
         raise ValueError(f"{run_id} did not halt; there is nothing to resume")
     halted_at = trips[-1].seq
 
-    config = (breaker_config or BreakerConfig()).overridden(breaker_overrides)
+    recorded = store.get_metadata(run_id).breaker_config
+    if recorded is None:
+        raise ValueError(f"{run_id} recorded no breaker configuration, so its halt cannot be reproduced")
+    config = BreakerConfig(**recorded).overridden(breaker_overrides)
     resumed_id = new_run_id_ or new_run_id()
     eid_base = log.next_eid
-    metadata = RunMetadata(run_id=resumed_id, parent_run_id=run_id, forked_at_seq=halted_at, eid_base=eid_base)
+    metadata = RunMetadata(run_id=resumed_id, parent_run_id=run_id, forked_at_seq=halted_at,
+                           eid_base=eid_base, breaker_config=config.model_dump())
     ctx = RunContext(resumed_id, store, ReplayMode(up_to=halted_at - 1), log=log,
                      breakers=Breakers(config), eid_base=eid_base)
     return _drive(store, metadata, ctx, factory, prompt)

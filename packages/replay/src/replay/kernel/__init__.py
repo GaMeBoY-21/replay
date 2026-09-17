@@ -6,6 +6,7 @@ from .errors import (
     DivergenceError,
     ReplayError,
     ReplayExhausted,
+    UnresolvableRun,
 )
 from .kernel import (
     Begun,
@@ -51,5 +52,6 @@ __all__ = [
     "record_trip",
     "serve_recorded",
     "state_at",
+    "UnresolvableRun",
     "will_execute",
 ]

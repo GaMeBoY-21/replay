@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -33,6 +34,10 @@ class RunMetadata(BaseModel):
     # resume continues the parent's eid sequence rather than restarting it;
     # restarting produces duplicate eids across a chain that is read as one log.
     eid_base: int = 0
+    # The breaker ceilings this run was held to. A resume reads them back, so a
+    # halted run carries the conditions of its own halt: the log is the run, and
+    # a resume that needs the caller to remember the ceilings is not reproducible.
+    breaker_config: dict[str, Any] | None = None
 
     @property
     def is_fork(self) -> bool:

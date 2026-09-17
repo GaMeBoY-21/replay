@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from replay_events import Event, RunMetadata, RunNotFound
 
+from .errors import UnresolvableRun
 from .log import RunLog
 
 
@@ -31,14 +32,15 @@ def first_eid_at(events: list[Event], seq: int) -> int | None:
     return None
 
 
-def lineage(store, run_id: str) -> list[tuple[str, RunMetadata | None]]:
+def lineage(store, run_id: str) -> list[tuple[str, RunMetadata]]:
     """The chain from this run up to its root, leaf first.
 
-    A run with no metadata is treated as a root: that is what a run recorded
-    before lineage existed looks like. It is also what an orphan fork looks
-    like, which is why a fork writes its metadata before its first event.
+    Every run in the chain must have metadata. A run without it cannot be told
+    apart from a root, and resolving an orphaned fork as one returns a shorter,
+    wrong, plausible log with its prefix missing. Lineage-first makes that rare;
+    raising here makes it loud.
     """
-    chain: list[tuple[str, RunMetadata | None]] = []
+    chain: list[tuple[str, RunMetadata]] = []
     seen: set[str] = set()
     current: str | None = run_id
     # A loop, never recursion. A recursive resolver on a deep chain previously
@@ -51,9 +53,13 @@ def lineage(store, run_id: str) -> list[tuple[str, RunMetadata | None]]:
         try:
             metadata = store.get_metadata(current)
         except RunNotFound:
-            metadata = None
+            asked = "" if current == run_id else f" (reached from {run_id})"
+            raise UnresolvableRun(
+                f"{current}{asked} has no metadata, so its parent is unknown and its log "
+                "cannot be resolved"
+            ) from None
         chain.append((current, metadata))
-        current = metadata.parent_run_id if metadata is not None else None
+        current = metadata.parent_run_id
     return chain
 
 

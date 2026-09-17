@@ -50,6 +50,10 @@ class RunContext:
         # memory key -> eid of the write that last produced it.
         self.writer_of: dict[str, int] = dict(log.writer_of) if log else {}
         self._clock = clock
+        # Set when a fork substitutes its result. `expected_mutated_event_id` is
+        # what the fork's metadata already recorded, written before any event.
+        self.expected_mutated_event_id: int | None = None
+        self.mutated_event_id: int | None = None
 
     # ---- counters ----
 
@@ -98,6 +102,24 @@ class RunContext:
             event.ts = self._clock()
         self.store.append(self.run_id, event)
         return event.eid
+
+    def record_mutation(self, eid: int) -> None:
+        """Take the substituted completion's eid from the append that wrote it.
+
+        The fork's metadata recorded a predicted id before the first event, and
+        the prediction holds only while nothing appends before the substituted
+        pair. The day something does - a lineage marker, a boundary - the
+        recorded id would silently name the wrong event, and diff and trace would
+        both read it. So a mismatch fails here, where it happens.
+        """
+        self.mutated_event_id = eid
+        if self.expected_mutated_event_id is not None and eid != self.expected_mutated_event_id:
+            from .errors import ReplayError
+
+            raise ReplayError(
+                f"the substituted result was appended at eid {eid}, but this fork's metadata "
+                f"records mutated_event_id {self.expected_mutated_event_id}"
+            )
 
     # ---- the read-set accumulator ----
 

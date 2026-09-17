@@ -361,8 +361,8 @@ CLAIMS: list[Claim] = [
     Claim(
         "resume applies its breaker overrides",
         f"{AGENT}/runs.py",
-        "    config = (breaker_config or BreakerConfig()).overridden(breaker_overrides)",
-        "    config = (breaker_config or BreakerConfig()).overridden(None)",
+        "    config = BreakerConfig(**recorded).overridden(breaker_overrides)",
+        "    config = BreakerConfig(**recorded).overridden(None)",
         ("tests/test_fork_chain.py",),
     ),
     Claim(
@@ -377,6 +377,35 @@ CLAIMS: list[Claim] = [
         f"{ROOT_PKG}/ids.py",
         "        if now <= _last[0]:",
         "        if False:",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "a recorded mutated_event_id is checked against the append that wrote it",
+        f"{KERNEL}/context.py",
+        "        if self.expected_mutated_event_id is not None and eid != self.expected_mutated_event_id:",
+        "        if False:",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "resume reads the halted run's breaker ceilings from its metadata",
+        f"{AGENT}/runs.py",
+        "    config = BreakerConfig(**recorded).overridden(breaker_overrides)",
+        "    config = BreakerConfig().overridden(breaker_overrides)",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "a run with no metadata is unresolvable, never a root",
+        f"{KERNEL}/chain.py",
+        "            raise UnresolvableRun(\n"
+        '                f"{current}{asked} has no metadata, so its parent is unknown and its log "\n'
+        '                "cannot be resolved"\n'
+        "            ) from None\n"
+        "        chain.append((current, metadata))\n"
+        "        current = metadata.parent_run_id",
+        "            chain.append((current, None))\n"
+        "            break\n"
+        "        chain.append((current, metadata))\n"
+        "        current = metadata.parent_run_id",
         ("tests/test_fork_chain.py",),
     ),
 ]

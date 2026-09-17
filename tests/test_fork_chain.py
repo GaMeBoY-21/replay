@@ -11,7 +11,7 @@ import pytest
 import strands_harness as H
 from replay.agent import runs
 from replay.ids import new_run_id
-from replay.kernel import BreakerConfig, resolve
+from replay.kernel import BreakerConfig, ReplayError, UnresolvableRun, resolve
 from replay.store import MemoryLogStore
 from replay_events import (
     EffectCompleted,
@@ -167,7 +167,7 @@ def test_resume_without_an_override_trips_again_at_the_same_seq(halted):
     H.reset_witnesses()
 
     again = runs.resume(store, "halted", looping, H.PROMPT,
-                        breaker_config=BreakerConfig(max_repeats=3), new_run_id_="again")
+                        new_run_id_="again")
 
     assert again.status == RunStatus.TRIPPED
     assert H.TOOL_EXECUTIONS == 0
@@ -181,7 +181,6 @@ def test_resume_with_an_override_continues(halted):
     H.reset_witnesses()
 
     resumed = runs.resume(store, "halted", looping, H.PROMPT,
-                          breaker_config=BreakerConfig(max_repeats=3),
                           breaker_overrides={"max_repeats": 10}, new_run_id_="resumed")
 
     assert resumed.status == RunStatus.COMPLETED
@@ -202,3 +201,66 @@ def test_run_ids_are_monotonic_within_a_process():
     ids = [new_run_id() for _ in range(2000)]
     assert len(set(ids)) == len(ids)
     assert ids == sorted(ids)
+
+
+# ---------------------------------------------------------------- follow-ups
+
+
+def test_a_fork_with_missing_metadata_raises_rather_than_resolving_as_a_root():
+    store = MemoryLogStore()
+    runs.record(store, live, H.PROMPT, run_id="root")
+    mutation = Result(value={"toolUseId": "tooluse-2", "status": "success", "content": [{"text": "x"}]})
+    runs.fork(store, "root", 2, mutation, live, H.PROMPT, run_id="fork")
+
+    orphan = MemoryLogStore()
+    for event in store.read("fork"):
+        orphan.append("fork", event)
+    with pytest.raises(UnresolvableRun, match="fork has no metadata"):
+        resolve(orphan, "fork")
+
+
+def test_a_missing_parent_is_unresolvable_too():
+    store = MemoryLogStore()
+    store.put_metadata(RunMetadata(run_id="child", parent_run_id="gone", forked_at_seq=1))
+    with pytest.raises(UnresolvableRun, match=r"gone \(reached from child\) has no metadata"):
+        resolve(store, "child")
+
+
+def test_a_run_records_the_breaker_ceilings_it_was_held_to(halted):
+    recorded = halted.get_metadata("halted").breaker_config
+    assert recorded == BreakerConfig(max_repeats=3).model_dump()
+
+
+def test_a_run_with_no_recorded_ceilings_cannot_be_resumed(halted):
+    store = halted
+    metadata = store.get_metadata("halted")
+    store.put_metadata(metadata.model_copy(update={"breaker_config": None}))
+    with pytest.raises(ValueError, match="no breaker configuration"):
+        runs.resume(store, "halted", looping, H.PROMPT, breaker_overrides={"max_repeats": 10})
+
+
+def test_a_mutated_event_id_that_does_not_match_the_append_fails_loudly():
+    from replay.kernel import ForkMode, RunContext, begin_effect, complete_effect, load_log
+
+    parent_store = MemoryLogStore()
+    live_ctx = RunContext("parent", parent_store, breakers=H.unbounded())
+    effect = ToolEffect(name="lookup", arguments={})
+    complete_effect(live_ctx, begin_effect(live_ctx, effect).seq, Result(value=1))
+    log = load_log(parent_store, "parent")
+
+    fork = RunContext("fork", MemoryLogStore(), ForkMode(at=0, mutation=Result(value=2)),
+                      log=log, breakers=H.unbounded(), eid_base=log.next_eid)
+    fork.expected_mutated_event_id = log.next_eid + 5
+    with pytest.raises(ReplayError, match="mutated_event_id"):
+        begin_effect(fork, effect)
+
+
+def test_a_forks_recorded_mutated_event_id_is_the_substituted_completion():
+    store = MemoryLogStore()
+    runs.record(store, live, H.PROMPT, run_id="root")
+    mutation = Result(value={"toolUseId": "tooluse-2", "status": "success", "content": [{"text": "x"}]})
+    fork = runs.fork(store, "root", 2, mutation, live, H.PROMPT, run_id="fork")
+
+    recorded = store.get_metadata("fork").mutated_event_id
+    (substituted,) = [e for e in store.read("fork") if e.type == "EffectCompleted" and e.substituted]
+    assert recorded == substituted.eid == fork.seam.model.ctx.mutated_event_id

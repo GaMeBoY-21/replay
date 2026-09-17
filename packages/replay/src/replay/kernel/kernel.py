@@ -104,7 +104,7 @@ def begin_effect(ctx: RunContext, effect: Effect) -> Begun:
             # was replaced, and replaying the fork would serve a value the fork
             # never saw. A fork you cannot replay is a screenshot, not a run.
             ctx.append(EffectRequested(seq=seq, effect=effect, reads=ctx.snapshot_reads()))
-            ctx.append(EffectCompleted(seq=seq, result=mutation, substituted=True))
+            ctx.record_mutation(ctx.append(EffectCompleted(seq=seq, result=mutation, substituted=True)))
             ctx.breakers.observe(effect, seq)
             ctx.breakers.account(mutation)
             ctx.mode = LiveMode()  # everything after this executes for real
