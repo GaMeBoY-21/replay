@@ -73,11 +73,16 @@ def _drive(store, metadata: RunMetadata, ctx: RunContext, factory: AgentFactory,
     return RunOutcome(ctx.run_id, answer, agent, seam, store, status)
 
 
+def _clock(clock) -> dict:
+    """An injected clock stamps `ts`; fixtures use one so they regenerate byte for byte."""
+    return {} if clock is None else {"clock": clock}
+
+
 def record(store, factory: AgentFactory, prompt, *, run_id: str | None = None,
-           breakers: Breakers | None = None) -> RunOutcome:
+           breakers: Breakers | None = None, clock=None) -> RunOutcome:
     run_id = run_id or new_run_id()
     breakers = breakers or _unbounded()
-    ctx = RunContext(run_id, store, LiveMode(), breakers=breakers)
+    ctx = RunContext(run_id, store, LiveMode(), breakers=breakers, **_clock(clock))
     metadata = RunMetadata(run_id=run_id, breaker_config=breakers.config.model_dump())
     return _drive(store, metadata, ctx, factory, prompt)
 
@@ -95,7 +100,7 @@ def replay(store, run_id: str, factory: AgentFactory, prompt, *, into=None) -> R
 
 
 def fork(store, parent_run_id: str, at_seq: int, mutation: Result, factory: AgentFactory, prompt,
-         *, run_id: str | None = None, breakers: Breakers | None = None) -> RunOutcome:
+         *, run_id: str | None = None, breakers: Breakers | None = None, clock=None) -> RunOutcome:
     parent = resolve(store, parent_run_id)
     if at_seq not in parent.by_seq:
         raise ValueError(f"{parent_run_id} has no effect at seq {at_seq}; its effects are 0-{parent.max_seq}")
@@ -118,13 +123,14 @@ def fork(store, parent_run_id: str, at_seq: int, mutation: Result, factory: Agen
         breaker_config=breakers.config.model_dump(),
     )
     ctx = RunContext(run_id, store, ForkMode(at=at_seq, mutation=mutation), log=parent,
-                     breakers=breakers, eid_base=eid_base)
+                     breakers=breakers, eid_base=eid_base, **_clock(clock))
     ctx.expected_mutated_event_id = metadata.mutated_event_id
     return _drive(store, metadata, ctx, factory, prompt)
 
 
 def resume(store, run_id: str, factory: AgentFactory, prompt, *,
-           breaker_overrides: dict | None = None, new_run_id_: str | None = None) -> RunOutcome:
+           breaker_overrides: dict | None = None, new_run_id_: str | None = None,
+           clock=None) -> RunOutcome:
     """Replay a halted run to its halt, then continue live. A fork with no mutation.
 
     The ceilings come from the halted run's own metadata. `breaker_overrides`
@@ -147,5 +153,5 @@ def resume(store, run_id: str, factory: AgentFactory, prompt, *,
     metadata = RunMetadata(run_id=resumed_id, parent_run_id=run_id, forked_at_seq=halted_at,
                            eid_base=eid_base, breaker_config=config.model_dump())
     ctx = RunContext(resumed_id, store, ReplayMode(up_to=halted_at - 1), log=log,
-                     breakers=Breakers(config), eid_base=eid_base)
+                     breakers=Breakers(config), eid_base=eid_base, **_clock(clock))
     return _drive(store, metadata, ctx, factory, prompt)

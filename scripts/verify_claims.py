@@ -52,6 +52,12 @@ AGENT = "packages/replay/src/replay/agent"
 ROOT_PKG = "packages/replay/src/replay"
 
 
+# Paths whose claims are about storage. Their tests run against every backend;
+# every other claim runs on memory alone, because its tests exercise the same
+# code three times over otherwise - that is what took verify from 33s to 103s.
+STORAGE_PATHS = ("packages/replay/src/replay/store/", "tests/conftest.py", "tests/backends.py")
+
+
 @dataclasses.dataclass(frozen=True)
 class Claim:
     name: str
@@ -59,6 +65,16 @@ class Claim:
     old: str
     new: str
     tests: tuple[str, ...]
+    # None means: decide from the path. A claim can still name its own.
+    backends: tuple[str, ...] | None = None
+
+    @property
+    def selected_backends(self) -> tuple[str, ...] | None:
+        if self.backends is not None:
+            return self.backends
+        if self.path.startswith(STORAGE_PATHS):
+            return None  # every backend
+        return ("memory",)
 
 
 CLAIMS: list[Claim] = [
@@ -487,6 +503,105 @@ CLAIMS: list[Claim] = [
         "    def list_runs(self) -> list[RunMetadata]:\n        # A Scan.",
         ("tests/test_kernel_invariants.py",),
     ),
+    Claim(
+        "the trace follows a write back through everything its step read",
+        f"{KERNEL}/provenance.py",
+        "            frontier.extend(event.reads)",
+        "            pass",
+        ("tests/test_provenance.py", "tests/test_scenario.py"),
+    ),
+    Claim(
+        "the trace follows a read back to the write it saw",
+        f"{KERNEL}/provenance.py",
+        "                frontier.append(event.source)",
+        "                pass",
+        ("tests/test_provenance.py", "tests/test_scenario.py"),
+    ),
+    Claim(
+        "the trace returns the whole chain, not just its head",
+        f"{KERNEL}/provenance.py",
+        "    return sorted(writes)",
+        "    return sorted(writes)[:1]",
+        ("tests/test_provenance.py", "tests/test_scenario.py"),
+    ),
+    Claim(
+        "a run's output is traced from the last thing it read",
+        f"{KERNEL}/provenance.py",
+        "    return reads[-1]",
+        "    return reads[0]",
+        ("tests/test_provenance.py", "tests/test_scenario.py"),
+    ),
+    Claim(
+        "a step boundary ends a step",
+        f"{KERNEL}/provenance.py",
+        "        if isinstance(event, StepBoundary):\n            step += 1",
+        "        pass",
+        ("tests/test_provenance.py", "tests/test_scenario.py"),
+    ),
+    Claim(
+        "a halted step is mapped to the seq its trip claimed",
+        f"{KERNEL}/provenance.py",
+        "        if isinstance(event, (EffectRequested, BreakerTripped)) and event.seq is not None:",
+        "        if isinstance(event, EffectRequested) and event.seq is not None:",
+        ("tests/test_provenance.py", "tests/test_scenario.py"),
+    ),
+    Claim(
+        "the diff reports a fork's prefix as shared by storage",
+        f"{KERNEL}/diff.py",
+        '        shared_prefix, basis = storage, "storage"',
+        '        shared_prefix, basis = divergence, "content"',
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the loop breaker's message names no step",
+        f"{KERNEL}/breakers.py",
+        '                "loop", f"Same call attempted {repeats} times. Suspended."',
+        '                "loop", f"Same call attempted {repeats} times at effect {seq}. Suspended."',
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the invoice header genuinely has no currency field",
+        f"{ROOT_PKG}/scenario/data.py",
+        '        "po_number": "PO-5512",\n    },',
+        '        "po_number": "PO-5512",\n        "currency": "INR",\n    },',
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the six line items sum to exactly 41000",
+        f"{ROOT_PKG}/scenario/data.py",
+        '"amount": 2500},',
+        '"amount": 2600},',
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "step 3 reads no prior memory",
+        f"{ROOT_PKG}/scenario/tools.py",
+        '    _state(tool_context).set("invoice.currency", header.get("currency", currency))',
+        '    _state(tool_context).get("invoice.line_items")\n'
+        '    _state(tool_context).set("invoice.currency", header.get("currency", currency))',
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the vendor_lookup retries are byte-identical",
+        f"{ROOT_PKG}/scenario/model.py",
+        '    [("vendor_lookup", VENDOR)],                                                 # 23 -> 24 retry 5',
+        '    [("vendor_lookup", {"name": "Meridian Supplies Ltd"})],                       # 23 -> 24 retry 5',
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the fork reads the source currency out of the warning",
+        f"{ROOT_PKG}/scenario/model.py",
+        '        [("set_invoice_currency", {"currency": source_currency}),',
+        '        [("set_invoice_currency", {"currency": "USD"}),',
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the committed scenario fixtures are what the code produces",
+        f"{ROOT_PKG}/scenario/model.py",
+        '"metrics": {"latencyMs": 40}}}',
+        '"metrics": {"latencyMs": 41}}}',
+        ("tests/test_fixtures_are_current.py",),
+    ),
 ]
 
 
@@ -572,6 +687,10 @@ def run_tests(claim: Claim, index: int) -> tuple[int, pathlib.Path]:
     env = dict(os.environ)
     env["REPLAY_VERIFY"] = "1"
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    if claim.selected_backends is not None:
+        env["REPLAY_BACKENDS"] = ",".join(claim.selected_backends)
+    else:
+        env.pop("REPLAY_BACKENDS", None)
     killed = None
     with open(logfile, "w") as out:
         child = subprocess.Popen(

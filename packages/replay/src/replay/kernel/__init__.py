@@ -1,5 +1,7 @@
 from .breakers import BreakerConfig, Breakers
 from .chain import first_eid_at, lineage, resolve
+from .diff import diff_runs
+from .provenance import flag_output, step_index, step_to_seq, trace, trace_path, trace_view
 from .context import RunContext
 from .errors import (
     BreakerTripped,
@@ -40,7 +42,9 @@ __all__ = [
     "ReplayMode",
     "RunContext",
     "RunLog",
+    "diff_runs",
     "first_eid_at",
+    "flag_output",
     "lineage",
     "resolve",
     "assert_same_shape",
@@ -52,6 +56,11 @@ __all__ = [
     "record_trip",
     "serve_recorded",
     "state_at",
+    "step_index",
+    "step_to_seq",
+    "trace",
+    "trace_path",
+    "trace_view",
     "UnresolvableRun",
     "will_execute",
 ]

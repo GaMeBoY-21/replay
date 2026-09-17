@@ -110,7 +110,9 @@ class Breakers:
 
         if effect.effect_kind == "tool" and repeats >= self.config.max_repeats:
             raise BreakerTripped(
-                "loop", f"{effect.describe()} requested {repeats} times with identical arguments"
+                # The message names no step and no tool. SCENARIO.md: the video must
+                # survive the retries landing somewhere slightly different.
+                "loop", f"Same call attempted {repeats} times. Suspended."
             )
 
         self._check_budget_and_latency()

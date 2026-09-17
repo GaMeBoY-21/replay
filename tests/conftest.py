@@ -52,6 +52,20 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
 
+def selected_backends() -> tuple[str, ...]:
+    """All three, unless REPLAY_BACKENDS narrows it. The mutation harness narrows a
+    claim that has nothing to do with storage to one backend; a normal run never
+    sets it."""
+    chosen = os.environ.get("REPLAY_BACKENDS")
+    if not chosen:
+        return backends.BACKENDS
+    names = tuple(name.strip() for name in chosen.split(",") if name.strip())
+    unknown = set(names) - set(backends.BACKENDS)
+    if unknown:
+        raise pytest.UsageError(f"REPLAY_BACKENDS names unknown backends: {sorted(unknown)}")
+    return names
+
+
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     if "backend" in metafunc.fixturenames and not metafunc.definition.get_closest_marker("single_backend"):
         metafunc.parametrize("backend", backends.BACKENDS, indirect=True)
@@ -66,3 +80,17 @@ def backend(request: pytest.FixtureRequest, tmp_path):
             yield name
         finally:
             backends.use(MemoryLogStore)
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    chosen = selected_backends()
+    if chosen == backends.BACKENDS:
+        return
+    kept, dropped = [], []
+    for item in items:
+        callspec = getattr(item, "callspec", None)
+        backend = callspec.params.get("backend") if callspec else None
+        (kept if backend is None or backend in chosen else dropped).append(item)
+    if dropped:
+        config.hook.pytest_deselected(items=dropped)
+        items[:] = kept

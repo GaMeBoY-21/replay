@@ -1,0 +1,83 @@
+{
+  "chain": [
+    {
+      "eid": 7,
+      "key": "invoice.currency",
+      "step": 3,
+      "value": "USD"
+    },
+    {
+      "eid": 12,
+      "key": "invoice.line_items",
+      "step": 4,
+      "value": [
+        {
+          "amount": 12500,
+          "description": "Steel mounting brackets",
+          "sku": "MS-100",
+          "unit": "USD"
+        },
+        {
+          "amount": 9800,
+          "description": "Anodised rail sections",
+          "sku": "MS-204",
+          "unit": "USD"
+        },
+        {
+          "amount": 7200,
+          "description": "Fastener assortment",
+          "sku": "MS-310",
+          "unit": "USD"
+        },
+        {
+          "amount": 5400,
+          "description": "Cable trays",
+          "sku": "MS-415",
+          "unit": "USD"
+        },
+        {
+          "amount": 3600,
+          "description": "Inspection and certification",
+          "sku": "MS-520",
+          "unit": "USD"
+        },
+        {
+          "amount": 2500,
+          "description": "Freight",
+          "sku": "MS-990",
+          "unit": "USD"
+        }
+      ]
+    },
+    {
+      "eid": 40,
+      "key": "invoice.subtotal",
+      "step": 11,
+      "value": 41000
+    },
+    {
+      "eid": 46,
+      "key": "fx.rate",
+      "step": 12,
+      "value": 1.0
+    },
+    {
+      "eid": 52,
+      "key": "report.total",
+      "step": 13,
+      "value": 41000.0
+    }
+  ],
+  "flagged": {
+    "eid": 133,
+    "key": "report.total",
+    "step": 39
+  },
+  "head": {
+    "eid": 7,
+    "key": "invoice.currency",
+    "step": 3,
+    "value": "USD"
+  },
+  "output_step": 40
+}
