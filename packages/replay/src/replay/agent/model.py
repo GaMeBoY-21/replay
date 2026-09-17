@@ -114,8 +114,13 @@ class ReplayModel(Model):
         # One model call is one effect and one seq, whatever the chunk count.
         # Recording chunks individually would make sequence numbers depend on
         # tokenisation, and no two providers tokenise alike.
+        before = self.ctx.next_eid
         result = await perform_async(self.ctx, effect, drain)
-        self.ctx.step_boundary(label="model")
+        # A step the log served appended nothing, and must not start now: a
+        # fork's replayed prefix belongs to its parent, and a boundary written
+        # here would put the parent's steps into the fork's own log.
+        if self.ctx.next_eid != before:
+            self.ctx.step_boundary(label="model")
         for chunk in result.value:
             yield chunk
 

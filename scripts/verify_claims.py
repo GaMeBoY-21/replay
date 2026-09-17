@@ -34,8 +34,10 @@ import json
 import os
 import pathlib
 import shutil
+import signal
 import subprocess
 import sys
+import time
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 BACKUPS = REPO / ".verify-claims-backups"
@@ -47,6 +49,7 @@ KERNEL = "packages/replay/src/replay/kernel"
 EVENTS = "packages/events/src/replay_events"
 STORE = "packages/replay/src/replay/store"
 AGENT = "packages/replay/src/replay/agent"
+ROOT_PKG = "packages/replay/src/replay"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -253,7 +256,7 @@ CLAIMS: list[Claim] = [
     Claim(
         "replayed state is seeded from the log, because tools do not run",
         f"{AGENT}/wiring.py",
-        "        seed_state(inner, ctx.log.events)",
+        "        seed_state(inner, ctx.log.events, before_eid=cut)",
         "        pass",
         ("tests/test_gate_strands.py",),
     ),
@@ -291,6 +294,90 @@ CLAIMS: list[Claim] = [
         "        if any(value is not None for value in values.values()):",
         "        if False:",
         ("tests/test_breaker_halts.py",),
+    ),
+    Claim(
+        "the forked step belongs to the fork, not the parent",
+        f"{KERNEL}/chain.py",
+        "        prefix = events if cut is None else [e for e in events if e.eid < cut]",
+        "        prefix = events if cut is None else [e for e in events if e.eid <= cut]",
+        ("tests/test_gate_fork.py",),
+    ),
+    Claim(
+        "a fork reads its prefix from its parent",
+        f"{KERNEL}/chain.py",
+        "        events = prefix + store.read(child)",
+        "        events = store.read(child)",
+        ("tests/test_gate_fork.py",),
+    ),
+    Claim(
+        "a cycle in the fork chain is refused, and a runaway dies under the cap",
+        f"{KERNEL}/chain.py",
+        "        if current in seen:",
+        "        if False:",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "a replayed model step appends nothing to the fork's own log",
+        f"{AGENT}/model.py",
+        "        if self.ctx.next_eid != before:",
+        "        if True:",
+        ("tests/test_gate_fork.py",),
+    ),
+    Claim(
+        "a replayed tool step appends nothing to the fork's own log",
+        f"{AGENT}/hooks.py",
+        "        if started is None or self.ctx.next_eid != started:",
+        "        if True:",
+        ("tests/test_gate_fork.py",),
+    ),
+    Claim(
+        "a fork continues its parent's eid sequence",
+        f"{AGENT}/runs.py",
+        "    eid_base = parent.next_eid",
+        "    eid_base = 0",
+        ("tests/test_gate_fork.py",),
+    ),
+    Claim(
+        "lineage is written before the first event",
+        f"{AGENT}/runs.py",
+        "    store.put_metadata(metadata)\n    try:",
+        "    try:",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "a fork is seeded with state as of the fork point",
+        f"{AGENT}/wiring.py",
+        "        seed_state(inner, ctx.log.events, before_eid=cut)",
+        "        seed_state(inner, ctx.log.events, before_eid=None)",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "a fork's writer index stops at the fork point",
+        f"{AGENT}/wiring.py",
+        "        ctx.writer_of = writer_index(ctx.log.events, before_eid=cut)",
+        "        pass",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "resume applies its breaker overrides",
+        f"{AGENT}/runs.py",
+        "    config = (breaker_config or BreakerConfig()).overridden(breaker_overrides)",
+        "    config = (breaker_config or BreakerConfig()).overridden(None)",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "resume continues its parent's eid sequence",
+        f"{AGENT}/runs.py",
+        "    eid_base = log.next_eid",
+        "    eid_base = 0",
+        ("tests/test_fork_chain.py",),
+    ),
+    Claim(
+        "run ids are monotonic within a process",
+        f"{ROOT_PKG}/ids.py",
+        "        if now <= _last[0]:",
+        "        if False:",
+        ("tests/test_fork_chain.py",),
     ),
 ]
 
@@ -335,22 +422,77 @@ def purge_bytecode() -> None:
 # ------------------------------------------------------------------- run
 
 
+# A mutation can turn a bounded walk into an unbounded one. That should end as a
+# failed test - the result wanted anyway - not take the machine with it. The
+# conftest guard stops a CONCURRENT pytest; nothing else stopped a runaway inside
+# the harness itself.
+MEMORY_CAP_BYTES = 2 * 2**30
+TIMEOUT_S = 600
+
+
+def _cap_address_space() -> None:
+    """Runs in the child before exec. Linux enforces RLIMIT_AS; macOS refuses to
+    set it at all, which is why the watchdog in `run_tests` exists too."""
+    try:
+        import resource
+
+        resource.setrlimit(resource.RLIMIT_AS, (MEMORY_CAP_BYTES, MEMORY_CAP_BYTES))
+    except (ImportError, ValueError, OSError):
+        pass
+
+
+def _group_rss_bytes(pgid: int) -> int:
+    """Resident memory of every process in a process group: `uv` and the pytest
+    it spawns are separate processes, and the runaway is the grandchild."""
+    listing = subprocess.run(["ps", "-A", "-o", "pgid=,rss="], capture_output=True, text=True).stdout
+    total_kb = 0
+    for line in listing.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] == str(pgid) and parts[1].isdigit():
+            total_kb += int(parts[1])
+    return total_kb * 1024
+
+
 def run_tests(claim: Claim, index: int) -> tuple[int, pathlib.Path]:
-    """Run the selected tests. No pipe: a pipe would report the pipe's status."""
+    """Run the selected tests under a memory cap and a wall-clock limit.
+
+    No pipe: a pipe would report the pipe's status. The child gets its own
+    process group, so a kill reaches every process it started.
+    """
     LOGDIR.mkdir(parents=True, exist_ok=True)
     logfile = LOGDIR / f"{index:02d}.log"
     env = dict(os.environ)
     env["REPLAY_VERIFY"] = "1"
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    killed = None
     with open(logfile, "w") as out:
-        completed = subprocess.run(
+        child = subprocess.Popen(
             ["uv", "run", "pytest", *claim.tests, "-x", "-q", "--no-header", "-p", "no:cacheprovider"],
             cwd=REPO,
             stdout=out,
             stderr=subprocess.STDOUT,
             env=env,
+            start_new_session=True,
+            preexec_fn=_cap_address_space,
         )
-    return completed.returncode, logfile
+        started = time.monotonic()
+        while child.poll() is None:
+            time.sleep(0.25)
+            rss = _group_rss_bytes(child.pid)
+            if rss > MEMORY_CAP_BYTES:
+                killed = f"exceeded the {MEMORY_CAP_BYTES // 2**20} MiB memory cap ({rss // 2**20} MiB)"
+            elif time.monotonic() - started > TIMEOUT_S:
+                killed = f"exceeded the {TIMEOUT_S}s time limit"
+            if killed:
+                os.killpg(child.pid, signal.SIGKILL)
+                child.wait()
+                break
+    if killed:
+        with open(logfile, "a") as out:
+            out.write(f"\nverify_claims: killed the test run - it {killed}\n")
+        # A runaway is the suite failing, which is what a guarded claim needs.
+        return 137, logfile
+    return child.returncode, logfile
 
 
 def main() -> int:

@@ -69,6 +69,9 @@ class ReplayHooks(HookProvider):
         # opens a new seq, which is correct: it is a second execution. The entry
         # is removed when the first closes, so one seq is never closed twice.
         self._open: dict[str, int] = {}
+        # toolUseId -> the next eid when the call began, so the after-hook can
+        # tell a step the log served (nothing appended) from one that ran.
+        self._started: dict[str, int] = {}
         self.halted: BreakerTripped | None = None
 
     def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
@@ -99,6 +102,7 @@ class ReplayHooks(HookProvider):
 
     def _before_tool(self, event: BeforeToolCallEvent) -> None:
         tool_use = event.tool_use
+        self._started[tool_use["toolUseId"]] = self.ctx.next_eid
         effect = ToolEffect(
             name=tool_use["name"],
             arguments=dict(tool_use.get("input") or {}),
@@ -130,4 +134,7 @@ class ReplayHooks(HookProvider):
             # The result, and only the result. `duration` is display metadata
             # and a replay would never reproduce it.
             complete_effect(self.ctx, seq, Result(value=event.result, error=error))
-        self.ctx.step_boundary(label=event.tool_use["name"])
+        started = self._started.pop(event.tool_use["toolUseId"], None)
+        # As in the model seam: a served step appends nothing to this run's log.
+        if started is None or self.ctx.next_eid != started:
+            self.ctx.step_boundary(label=event.tool_use["name"])

@@ -1,4 +1,5 @@
 from .breakers import BreakerConfig, Breakers
+from .chain import first_eid_at, lineage, resolve
 from .context import RunContext
 from .errors import (
     BreakerTripped,
@@ -38,6 +39,9 @@ __all__ = [
     "ReplayMode",
     "RunContext",
     "RunLog",
+    "first_eid_at",
+    "lineage",
+    "resolve",
     "assert_same_shape",
     "begin_effect",
     "complete_effect",

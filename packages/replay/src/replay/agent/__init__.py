@@ -2,7 +2,8 @@
 
 from .hooks import RecordedTool, ReplayHooks
 from .model import ReplayModel, UnrecordedModelInput, model_effect, unrecorded_inputs
-from .wiring import Seam, attach, seed_state
+from . import runs
+from .wiring import Seam, attach, own_log_begins, seed_state, writer_index
 
 __all__ = [
     "RecordedTool",
@@ -11,7 +12,10 @@ __all__ = [
     "Seam",
     "UnrecordedModelInput",
     "attach",
+    "own_log_begins",
+    "runs",
     "model_effect",
     "seed_state",
     "unrecorded_inputs",
+    "writer_index",
 ]

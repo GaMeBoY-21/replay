@@ -13,6 +13,7 @@ from strands.tools.executors import SequentialToolExecutor
 from replay_events import MemoryWrite
 
 from ..kernel import RecordingState, RunContext
+from ..kernel.chain import first_eid_at
 from .hooks import ReplayHooks
 from .model import ReplayModel
 
@@ -24,7 +25,7 @@ class Seam:
     state: RecordingState
 
 
-def seed_state(inner, events, up_to_eid: int | None = None) -> None:
+def seed_state(inner, events, before_eid: int | None = None) -> None:
     """Apply recorded writes to the raw state, before a replay starts.
 
     This is the layer where seeding is correct, and it is the opposite of the
@@ -40,12 +41,39 @@ def seed_state(inner, events, up_to_eid: int | None = None) -> None:
     for event in events:
         if not isinstance(event, MemoryWrite):
             continue
-        if up_to_eid is not None and event.eid > up_to_eid:
+        if before_eid is not None and event.eid >= before_eid:
             break
         if event.tombstone:
             inner.delete(event.key)
         else:
             inner.set(event.key, event.value)
+
+
+def writer_index(events, before_eid: int | None = None) -> dict[str, int]:
+    """memory key -> the eid of the write that last produced it, before a cut."""
+    writers: dict[str, int] = {}
+    for event in events:
+        if before_eid is not None and event.eid >= before_eid:
+            break
+        if isinstance(event, MemoryWrite):
+            writers[event.key] = event.eid
+    return writers
+
+
+def own_log_begins(ctx: RunContext) -> int | None:
+    """The eid in the handed log where this run stops reading and starts owning.
+
+    For a fork, the first event at the forked seq; for a resume, the first event
+    at the seq after the replayed prefix - the halt. None for a full replay,
+    which reads the whole log.
+    """
+    if ctx.log is None:
+        return None
+    if ctx.mode.kind == "fork":
+        return first_eid_at(ctx.log.events, ctx.mode.at)
+    if ctx.mode.kind == "replay":
+        return first_eid_at(ctx.log.events, ctx.mode.up_to + 1)
+    return None
 
 
 def attach(agent: Agent, ctx: RunContext) -> Seam:
@@ -62,8 +90,15 @@ def attach(agent: Agent, ctx: RunContext) -> Seam:
     agent.tool_executor = SequentialToolExecutor()
 
     inner = agent.state
-    if ctx.mode.kind == "replay" and ctx.log is not None:
-        seed_state(inner, ctx.log.events)
+    if ctx.mode.kind in ("replay", "fork") and ctx.log is not None:
+        # As of the point this run's own events begin, not the end of the log it
+        # was handed. A fork seeded with its parent's final state would read
+        # values the parent wrote AFTER the step the fork replaced.
+        cut = own_log_begins(ctx)
+        seed_state(inner, ctx.log.events, before_eid=cut)
+        # The trace's reverse index, to the same cut: a read in the fork must
+        # point at the write it actually saw, not one the parent made later.
+        ctx.writer_of = writer_index(ctx.log.events, before_eid=cut)
     # Wrapped AFTER construction. AgentState.get takes no default argument, and
     # RecordingState.get forwards none.
     state = RecordingState(ctx, inner)
