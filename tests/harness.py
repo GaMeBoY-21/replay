@@ -12,6 +12,7 @@ front. See `state_at`.
 
 from __future__ import annotations
 
+from backends import new_store
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -132,7 +133,7 @@ def record(script: list[Step], *, run_id: str = "run-1", initial=None, breakers=
     return run_script(
         script,
         run_id=run_id,
-        store=MemoryLogStore(),
+        store=new_store(),
         executor=live_executor,
         initial=initial,
         breakers=breakers,
@@ -163,7 +164,7 @@ def replay(
     return run_script(
         script,
         run_id=recorded.run_id + "-replay",
-        store=MemoryLogStore(),
+        store=new_store(),
         mode=ReplayMode(up_to=log.max_seq),
         log=log,
         executor=executor,

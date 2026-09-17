@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backends import new_store
 import asyncio
 import json
 
@@ -36,7 +37,7 @@ def drain(model, *args, **kwargs):
 
 
 def test_the_model_effect_carries_all_five_inputs():
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext("model", store, LiveMode(), breakers=H.unbounded())
     model = ReplayModel(ctx, H.ScriptedModel([H.text_response("hi")]))
 
@@ -56,7 +57,7 @@ def test_the_model_effect_carries_all_five_inputs():
 
 
 def test_one_model_call_is_one_effect_whatever_the_chunk_count():
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext("chunks", store, LiveMode(), breakers=H.unbounded())
     response = H.text_response("a long answer")
     model = ReplayModel(ctx, H.ScriptedModel([response]))
@@ -80,7 +81,7 @@ def test_the_volatile_and_per_cycle_inputs_never_reach_the_log():
 
 
 def test_structured_output_is_gated():
-    ctx = RunContext("so", MemoryLogStore(), LiveMode())
+    ctx = RunContext("so", new_store(), LiveMode())
     model = ReplayModel(ctx, H.ScriptedModel())
     with pytest.raises(NotImplementedError):
         model.structured_output(dict, [{"role": "user", "content": [{"text": "x"}]}])
@@ -90,14 +91,14 @@ def test_a_changed_tool_choice_diverges_on_replay():
     """The fingerprint is compared through the seam, not only in the contract."""
     from replay.kernel import DivergenceError
 
-    store = MemoryLogStore()
+    store = new_store()
     live = RunContext("choice", store, LiveMode(), breakers=H.unbounded())
     messages = [{"role": "user", "content": [{"text": "hi"}]}]
     drain(ReplayModel(live, H.ScriptedModel([H.text_response("x")])), messages,
           tool_choice={"auto": {}})
 
     log = load_log(store, "choice")
-    replaying = RunContext("choice-replay", MemoryLogStore(), ReplayMode(up_to=log.max_seq), log=log)
+    replaying = RunContext("choice-replay", new_store(), ReplayMode(up_to=log.max_seq), log=log)
     with pytest.raises(DivergenceError):
         drain(ReplayModel(replaying, H.RefusingModel()), messages, tool_choice={"any": {}})
 
@@ -107,7 +108,7 @@ def test_a_changed_tool_choice_diverges_on_replay():
 
 def recorded_tool_log():
     """A log holding one completed tool effect."""
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext("tool", store, LiveMode(), breakers=H.unbounded())
     effect = ToolEffect(name="record_total", arguments={"total": 41000}, tool_use_id="tooluse-9")
     begun = begin_effect(ctx, effect)
@@ -118,7 +119,7 @@ def recorded_tool_log():
 
 def test_the_replay_stub_yields_a_bare_tool_result():
     log, recorded = recorded_tool_log()
-    ctx = RunContext("tool-replay", MemoryLogStore(), ReplayMode(up_to=log.max_seq), log=log)
+    ctx = RunContext("tool-replay", new_store(), ReplayMode(up_to=log.max_seq), log=log)
     hooks = ReplayHooks(ctx)
     event = BeforeToolCallEvent(
         agent=None,
@@ -140,7 +141,7 @@ def test_the_replay_stub_yields_a_bare_tool_result():
 
 
 def test_attach_replaces_the_concurrent_executor():
-    ctx = RunContext("exec", MemoryLogStore(), LiveMode())
+    ctx = RunContext("exec", new_store(), LiveMode())
     agent = H.build_agent()
     attach(agent, ctx)
     assert isinstance(agent.tool_executor, SequentialToolExecutor)
@@ -167,7 +168,7 @@ class RetryOnce(HookProvider):
 
 
 def test_a_tool_retry_opens_a_new_seq_and_closes_each_once():
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext("retry", store, LiveMode(), breakers=H.unbounded())
     agent = H.build_agent(hooks=[RetryOnce()])
     attach(agent, ctx)
@@ -220,7 +221,7 @@ LOOP = [
 
 
 def test_a_tool_breaker_halts_the_run_before_the_tool_runs():
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext("loop", store, LiveMode(), breakers=Breakers(BreakerConfig(max_repeats=3)))
     agent = H.build_agent(model=H.ScriptedModel(LOOP))
     attach(agent, ctx)

@@ -408,6 +408,85 @@ CLAIMS: list[Claim] = [
         "        current = metadata.parent_run_id",
         ("tests/test_fork_chain.py",),
     ),
+    Claim(
+        "every backend returns a value in its recorded form, keys sorted",
+        f"{STORE}/codec.py",
+        "    return canonical(dump_event(event))",
+        "    return json.dumps(dump_event(event))",
+        ("tests/test_stores.py",),
+    ),
+    Claim(
+        "the suite runs every store test against every backend",
+        "tests/conftest.py",
+        '        metafunc.parametrize("backend", backends.BACKENDS, indirect=True)',
+        "        pass",
+        ("tests/test_store_backends.py",),
+    ),
+    Claim(
+        "SQLite shares its connection with the tool thread",
+        f"{STORE}/sqlite.py",
+        "        self._db = sqlite3.connect(self.path, check_same_thread=False)",
+        "        self._db = sqlite3.connect(self.path)",
+        ("tests/test_store_backends.py",),
+    ),
+    Claim(
+        "SQLite append is conditional on the eid being free",
+        f"{STORE}/sqlite.py",
+        "    body TEXT NOT NULL,\n    PRIMARY KEY (run_id, eid)\n);",
+        "    body TEXT NOT NULL\n);",
+        ("tests/test_stores.py",),
+    ),
+    Claim(
+        "DynamoDB append is conditional on the eid being free",
+        f"{STORE}/dynamo.py",
+        '                ConditionExpression="attribute_not_exists(SK)",\n',
+        "",
+        ("tests/test_stores.py",),
+    ),
+    Claim(
+        "the DynamoDB sort key is zero-padded, so a Query returns eid order",
+        f"{STORE}/dynamo.py",
+        '    return f"EVT#{eid:09d}"',
+        '    return f"EVT#{eid}"',
+        ("tests/test_stores.py",),
+    ),
+    Claim(
+        "DynamoDB reads every page of a run",
+        f"{STORE}/dynamo.py",
+        "            if not last:\n                return events\n            request[\"ExclusiveStartKey\"] = last",
+        "            return events",
+        ("tests/test_stores.py",),
+    ),
+    Claim(
+        "a DynamoDB payload over 100KB is offloaded to S3",
+        f"{STORE}/dynamo.py",
+        "        if len(body.encode()) > INLINE_LIMIT:",
+        "        if False:",
+        ("tests/test_store_backends.py",),
+    ),
+    Claim(
+        "an offloaded payload is read back from S3",
+        f"{STORE}/dynamo.py",
+        '        return self._s3.get_object(Bucket=bucket, Key=key)["Body"].read().decode()',
+        '        return "{}"',
+        ("tests/test_stores.py",),
+    ),
+    Claim(
+        "the SQLite store exposes no mutate path",
+        f"{STORE}/sqlite.py",
+        "    def list_runs(self) -> list[RunMetadata]:\n        with self._lock:",
+        "    def update(self, run_id, event):\n        pass\n\n"
+        "    def list_runs(self) -> list[RunMetadata]:\n        with self._lock:",
+        ("tests/test_kernel_invariants.py",),
+    ),
+    Claim(
+        "the DynamoDB store exposes no mutate path",
+        f"{STORE}/dynamo.py",
+        "    def list_runs(self) -> list[RunMetadata]:\n        # A Scan.",
+        "    def update(self, run_id, event):\n        pass\n\n"
+        "    def list_runs(self) -> list[RunMetadata]:\n        # A Scan.",
+        ("tests/test_kernel_invariants.py",),
+    ),
 ]
 
 

@@ -9,6 +9,7 @@ tool result, where serving the parent's original would be visible.
 
 from __future__ import annotations
 
+from backends import new_store
 import json
 
 import pytest
@@ -37,7 +38,7 @@ def refusing():
 
 @pytest.fixture
 def forked():
-    store = MemoryLogStore()
+    store = new_store()
     root = runs.record(store, live, H.PROMPT, run_id="root")
     fork = runs.fork(store, "root", FORK_AT, MUTATION, live, H.PROMPT, run_id="fork-a")
     return store, root, fork

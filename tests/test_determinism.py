@@ -43,7 +43,10 @@ scripts = st.lists(steps, min_size=1, max_size=20)
 
 
 @given(script=scripts)
-@settings(max_examples=150, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+# function_scoped_fixture: the autouse `backend` fixture only selects a store
+# factory; every example builds its own fresh stores, so nothing leaks between them.
+@settings(max_examples=150, deadline=None,
+          suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture])
 def test_replay_is_byte_identical(script):
     """CLAIM: for any recorded run, replaying it reproduces identical state."""
     recorded = record(script, breakers=unbounded())

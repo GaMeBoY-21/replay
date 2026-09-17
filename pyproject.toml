@@ -13,10 +13,14 @@ replay = { workspace = true }
 members = ["packages/events", "packages/replay"]
 
 [dependency-groups]
-dev = ["pytest>=8", "hypothesis>=6"]
+dev = ["pytest>=8", "hypothesis>=6", "moto[dynamodb,s3]>=5.2"]
 
 [tool.pytest.ini_options]
 pythonpath = ["packages/events/src", "packages/replay/src", "tests"]
 testpaths = ["tests"]
 addopts = "-q"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # botocore and moto call datetime.utcnow(), deprecated in 3.12. Theirs, not ours.
+    "ignore:datetime.datetime.utcnow:DeprecationWarning",
+]

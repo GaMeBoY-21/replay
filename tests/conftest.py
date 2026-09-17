@@ -17,6 +17,9 @@ import pathlib
 
 import pytest
 
+import backends
+from replay.store import MemoryLogStore
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 INFLIGHT = REPO_ROOT / ".verify-claims-inflight"
 
@@ -33,3 +36,33 @@ def pytest_collection(session: pytest.Session) -> None:
             "exhausted this machine's memory. Wait for verify to finish, or "
             "remove the marker if you are certain it is stale."
         )
+
+
+# ---------------------------------------------------------------- the backends
+#
+# Every test runs against all three stores. The assertions never name one: a test
+# asks `backends.new_store()` for a store, and this fixture decides which kind it
+# gets. The identical suite passing three times is the equivalence proof.
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "single_backend: runs once, because it constructs the stores it compares itself",
+    )
+
+
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
+    if "backend" in metafunc.fixturenames and not metafunc.definition.get_closest_marker("single_backend"):
+        metafunc.parametrize("backend", backends.BACKENDS, indirect=True)
+
+
+@pytest.fixture(autouse=True)
+def backend(request: pytest.FixtureRequest, tmp_path):
+    name = getattr(request, "param", "memory")
+    with backends.open_backend(name, tmp_path) as factory:
+        backends.use(factory)
+        try:
+            yield name
+        finally:
+            backends.use(MemoryLogStore)

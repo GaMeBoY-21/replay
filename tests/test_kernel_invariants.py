@@ -6,6 +6,7 @@ true, one of these goes red.
 
 from __future__ import annotations
 
+from backends import new_store
 import pytest
 
 from harness import Step, effect_for, record, replay
@@ -135,14 +136,14 @@ def test_a_recorded_none_result_is_served_not_re_executed():
     flag re-executes the effect — during a replay, which is the one thing replay
     must never do.
     """
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id="r", store=store, mode=LiveMode())
     effect = ToolEffect(name="returns_nothing", arguments={})
     perform(ctx, effect, lambda: Result(value=None))
 
     log = load_log(store, "r")
     replay_ctx = RunContext(
-        run_id="r2", store=MemoryLogStore(), mode=ReplayMode(up_to=log.max_seq), log=log
+        run_id="r2", store=new_store(), mode=ReplayMode(up_to=log.max_seq), log=log
     )
 
     def must_not_run():
@@ -158,7 +159,7 @@ def test_a_recorded_none_result_is_served_not_re_executed():
 def test_the_store_refuses_a_duplicate_eid():
     """CLAIM: append is conditional, so append-only is a guarantee rather than
     a convention."""
-    store = MemoryLogStore()
+    store = new_store()
     store.append("r", StepBoundary(eid=0))
     with pytest.raises(EventIdConflict):
         store.append("r", StepBoundary(eid=0))
@@ -167,7 +168,7 @@ def test_the_store_refuses_a_duplicate_eid():
 def test_the_context_refuses_a_pre_stamped_event():
     """CLAIM: only RunContext.append assigns an eid, so ordering cannot be
     forged by a caller."""
-    ctx = RunContext(run_id="r", store=MemoryLogStore())
+    ctx = RunContext(run_id="r", store=new_store())
     with pytest.raises(ValueError):
         ctx.append(StepBoundary(eid=7))
 
@@ -178,9 +179,14 @@ def test_the_store_has_no_mutate_path():
     Guarded structurally rather than by review: a backend that grows an update
     method fails here.
     """
+    from replay.store import DynamoLogStore, SQLiteLogStore
+
     banned = {"update", "set", "replace", "edit", "patch", "delete", "amend"}
-    exposed = {name for name in dir(MemoryLogStore) if not name.startswith("_")}
-    assert not (exposed & banned), f"the store grew a mutate path: {exposed & banned}"
+    protocol = {"append", "read", "put_metadata", "get_metadata", "list_runs"}
+    for store in (MemoryLogStore, SQLiteLogStore, DynamoLogStore):
+        exposed = {name for name in dir(store) if not name.startswith("_") and callable(getattr(store, name))}
+        assert not (exposed & banned), f"{store.__name__} grew a mutate path: {exposed & banned}"
+        assert exposed == protocol, f"{store.__name__} exposes more than the protocol: {exposed - protocol}"
 
 
 def test_an_effect_cannot_be_completed_twice():
@@ -190,7 +196,7 @@ def test_an_effect_cannot_be_completed_twice():
     its own seq, which is correct. Two completions at one seq means the gate was
     bypassed.
     """
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id="r", store=store)
     begun = begin_effect(ctx, ToolEffect(name="f", arguments={}))
     complete_effect(ctx, begun.seq, Result(value=1))
@@ -209,7 +215,7 @@ def test_a_request_without_a_completion_is_the_crash_signature():
     the side effect" and "died after it" indistinguishable — erasing the one
     question the signature exists to answer.
     """
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id="r", store=store)
     begin_effect(ctx, ToolEffect(name="charge_card", arguments={"amount": 10}))
     # process dies here
@@ -230,7 +236,7 @@ def test_the_read_set_clears_only_at_a_step_boundary():
     produced it. If the set cleared per-read, the chain breaks; if it never
     cleared, every write would claim every earlier read.
     """
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id="r", store=store)
     state = RecordingState(ctx, DictState())
 
@@ -246,7 +252,7 @@ def test_the_read_set_clears_only_at_a_step_boundary():
 
 
 def test_snapshot_reads_copies_and_does_not_clear():
-    ctx = RunContext(run_id="r", store=MemoryLogStore())
+    ctx = RunContext(run_id="r", store=new_store())
     ctx.pending_reads.extend([1, 2])
     snapshot = ctx.snapshot_reads()
     snapshot.append(99)
@@ -256,7 +262,7 @@ def test_snapshot_reads_copies_and_does_not_clear():
 def test_a_read_records_the_write_that_produced_it():
     """CLAIM: the reverse index is built as the run proceeds, which is what
     makes the trace walkable without a graph database."""
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id="r", store=store)
     state = RecordingState(ctx, DictState())
 
@@ -279,7 +285,7 @@ def test_state_is_rebuilt_from_the_log():
 
 
 def test_state_at_honours_tombstones():
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id="r", store=store)
     state = RecordingState(ctx, DictState())
     state.set("k", 1)
@@ -288,7 +294,7 @@ def test_state_at_honours_tombstones():
 
 
 def test_state_at_is_a_prefix_view():
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id="r", store=store)
     state = RecordingState(ctx, DictState())
     state.set("k", "before")
@@ -305,7 +311,7 @@ def test_replay_past_the_end_of_the_log_fails_loudly():
     recorded = record(SCRIPT)
     log = load_log(recorded.store, recorded.run_id)
     ctx = RunContext(
-        run_id="x", store=MemoryLogStore(), mode=ReplayMode(up_to=log.max_seq + 5), log=log
+        run_id="x", store=new_store(), mode=ReplayMode(up_to=log.max_seq + 5), log=log
     )
     for step in SCRIPT:
         perform(ctx, effect_for(step), lambda: Result())

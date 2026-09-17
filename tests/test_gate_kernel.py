@@ -9,6 +9,7 @@ Two claims, and the stage is not done until both are green:
 
 from __future__ import annotations
 
+from backends import new_store
 import pytest
 
 from harness import (
@@ -73,7 +74,7 @@ def test_the_poison_is_live_ammunition():
     """
     with pytest.raises(ExecutedDuringReplay):
         run_script(
-            TEN_STEPS, run_id="poison-check", store=MemoryLogStore(), executor=poisoned_executor
+            TEN_STEPS, run_id="poison-check", store=new_store(), executor=poisoned_executor
         )
 
 

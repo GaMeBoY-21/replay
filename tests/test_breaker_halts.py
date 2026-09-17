@@ -7,6 +7,7 @@ is a chunk list and only the dict path was ever tested.
 
 from __future__ import annotations
 
+from backends import new_store
 import asyncio
 
 import pytest
@@ -20,7 +21,7 @@ from replay.store import MemoryLogStore
 
 
 def run(model_script, config, run_id):
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id, store, LiveMode(), breakers=Breakers(config))
     agent = H.build_agent(model=H.ScriptedModel(model_script))
     attach(agent, ctx)
@@ -91,7 +92,7 @@ def drain(model, **kwargs):
 
 
 def fresh_model():
-    ctx = RunContext("inputs", MemoryLogStore(), LiveMode(), breakers=H.unbounded())
+    ctx = RunContext("inputs", new_store(), LiveMode(), breakers=H.unbounded())
     return ReplayModel(ctx, H.ScriptedModel([H.text_response("ok")]))
 
 

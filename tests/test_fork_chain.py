@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backends import new_store
 import inspect
 import json
 import sys
@@ -50,7 +51,7 @@ def build_chain(store, depth):
 
 
 def test_a_500_deep_chain_resolves_iteratively():
-    store = MemoryLogStore()
+    store = new_store()
     build_chain(store, 500)
 
     # Leave headroom for the resolver's own frames and nothing like 500 of them:
@@ -69,7 +70,7 @@ def test_a_500_deep_chain_resolves_iteratively():
 
 
 def test_a_cycle_in_the_chain_is_refused():
-    store = MemoryLogStore()
+    store = new_store()
     store.put_metadata(RunMetadata(run_id="a", parent_run_id="b", forked_at_seq=1))
     store.put_metadata(RunMetadata(run_id="b", parent_run_id="a", forked_at_seq=1))
     with pytest.raises(ValueError, match="cycles"):
@@ -96,7 +97,7 @@ class FailsWhenCalled(H.ScriptedModel):
 
 
 def test_a_fork_that_fails_mid_run_still_resolves():
-    store = MemoryLogStore()
+    store = new_store()
     runs.record(store, live, H.PROMPT, run_id="root")
     FailsWhenCalled.seen.clear()
     mutation = Result(value={"toolUseId": "tooluse-2", "status": "success", "content": [{"text": "x"}]})
@@ -123,7 +124,7 @@ def test_a_fork_that_fails_mid_run_still_resolves():
 def test_a_fork_starts_from_the_state_at_the_fork_point():
     """The parent wrote fx.rate at seq 2, the step the fork replaced. The fork
     must not see it - neither as a value nor as the writer of what it reads."""
-    store = MemoryLogStore()
+    store = new_store()
     runs.record(store, live, H.PROMPT, run_id="root")
     mutation = Result(value={"toolUseId": "tooluse-2", "status": "success", "content": [{"text": "x"}]})
 
@@ -151,7 +152,7 @@ def looping():
 def halted():
     from replay.kernel import Breakers
 
-    store = MemoryLogStore()
+    store = new_store()
     outcome = runs.record(store, looping, H.PROMPT, run_id="halted",
                           breakers=Breakers(BreakerConfig(max_repeats=3)))
     assert outcome.status == RunStatus.TRIPPED
@@ -207,12 +208,12 @@ def test_run_ids_are_monotonic_within_a_process():
 
 
 def test_a_fork_with_missing_metadata_raises_rather_than_resolving_as_a_root():
-    store = MemoryLogStore()
+    store = new_store()
     runs.record(store, live, H.PROMPT, run_id="root")
     mutation = Result(value={"toolUseId": "tooluse-2", "status": "success", "content": [{"text": "x"}]})
     runs.fork(store, "root", 2, mutation, live, H.PROMPT, run_id="fork")
 
-    orphan = MemoryLogStore()
+    orphan = new_store()
     for event in store.read("fork"):
         orphan.append("fork", event)
     with pytest.raises(UnresolvableRun, match="fork has no metadata"):
@@ -220,7 +221,7 @@ def test_a_fork_with_missing_metadata_raises_rather_than_resolving_as_a_root():
 
 
 def test_a_missing_parent_is_unresolvable_too():
-    store = MemoryLogStore()
+    store = new_store()
     store.put_metadata(RunMetadata(run_id="child", parent_run_id="gone", forked_at_seq=1))
     with pytest.raises(UnresolvableRun, match=r"gone \(reached from child\) has no metadata"):
         resolve(store, "child")
@@ -242,13 +243,13 @@ def test_a_run_with_no_recorded_ceilings_cannot_be_resumed(halted):
 def test_a_mutated_event_id_that_does_not_match_the_append_fails_loudly():
     from replay.kernel import ForkMode, RunContext, begin_effect, complete_effect, load_log
 
-    parent_store = MemoryLogStore()
+    parent_store = new_store()
     live_ctx = RunContext("parent", parent_store, breakers=H.unbounded())
     effect = ToolEffect(name="lookup", arguments={})
     complete_effect(live_ctx, begin_effect(live_ctx, effect).seq, Result(value=1))
     log = load_log(parent_store, "parent")
 
-    fork = RunContext("fork", MemoryLogStore(), ForkMode(at=0, mutation=Result(value=2)),
+    fork = RunContext("fork", new_store(), ForkMode(at=0, mutation=Result(value=2)),
                       log=log, breakers=H.unbounded(), eid_base=log.next_eid)
     fork.expected_mutated_event_id = log.next_eid + 5
     with pytest.raises(ReplayError, match="mutated_event_id"):
@@ -256,7 +257,7 @@ def test_a_mutated_event_id_that_does_not_match_the_append_fails_loudly():
 
 
 def test_a_forks_recorded_mutated_event_id_is_the_substituted_completion():
-    store = MemoryLogStore()
+    store = new_store()
     runs.record(store, live, H.PROMPT, run_id="root")
     mutation = Result(value={"toolUseId": "tooluse-2", "status": "success", "content": [{"text": "x"}]})
     fork = runs.fork(store, "root", 2, mutation, live, H.PROMPT, run_id="fork")

@@ -11,6 +11,7 @@ If replay ever lets a real tool run, `TOOL_EXECUTIONS` moves.
 
 from __future__ import annotations
 
+from backends import new_store
 import json
 from typing import Any
 
@@ -180,7 +181,7 @@ def unbounded() -> Breakers:
 
 def record(run_id: str = "strands-run", *, model=None, prompt: str = PROMPT, breakers=None, tools=None):
     """Record a live run. Returns (store, agent, answer)."""
-    store = MemoryLogStore()
+    store = new_store()
     ctx = RunContext(run_id=run_id, store=store, mode=LiveMode(), breakers=breakers or unbounded())
     agent = build_agent(model=model, tools=tools)
     attach(agent, ctx)
@@ -191,7 +192,7 @@ def record(run_id: str = "strands-run", *, model=None, prompt: str = PROMPT, bre
 def replay(store, run_id: str = "strands-run", *, model=None, prompt: str = PROMPT):
     """Replay a recorded run into a throwaway store. Returns (replay_store, agent, answer)."""
     log = load_log(store, run_id)
-    replay_store = MemoryLogStore()
+    replay_store = new_store()
     ctx = RunContext(
         run_id=f"{run_id}-replay",
         store=replay_store,
