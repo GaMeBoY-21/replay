@@ -13,7 +13,9 @@ from .kernel import (
     complete_effect,
     perform,
     perform_async,
+    record_trip,
     serve_recorded,
+    will_execute,
 )
 from .log import EffectRecord, RunLog, load_log
 from .modes import ForkMode, LiveMode, Mode, ReplayMode
@@ -42,6 +44,8 @@ __all__ = [
     "load_log",
     "perform",
     "perform_async",
+    "record_trip",
     "serve_recorded",
     "state_at",
+    "will_execute",
 ]

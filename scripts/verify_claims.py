@@ -257,6 +257,41 @@ CLAIMS: list[Claim] = [
         "        pass",
         ("tests/test_gate_strands.py",),
     ),
+    Claim(
+        "token usage is read from a recorded chunk list",
+        f"{KERNEL}/breakers.py",
+        '        return sum(\n            _usage_tokens(chunk["metadata"].get("usage"))',
+        '        return 0 * sum(\n            _usage_tokens(chunk["metadata"].get("usage"))',
+        ("tests/test_breaker_halts.py",),
+    ),
+    Claim(
+        "a model-side ceiling is checked before the call, so the halt ends cleanly",
+        f"{AGENT}/hooks.py",
+        "                    self.ctx.breakers.check_ceilings(seq)",
+        "                    pass",
+        ("tests/test_breaker_halts.py",),
+    ),
+    Claim(
+        "a model-side halt is appended to the log",
+        f"{AGENT}/hooks.py",
+        "                    record_trip(self.ctx, self.ctx.next_seq(), trip)",
+        "                    pass",
+        ("tests/test_breaker_halts.py",),
+    ),
+    Claim(
+        "a non-empty model_state is refused as an unrecorded input",
+        f"{AGENT}/model.py",
+        '    if kwargs.get("model_state"):',
+        "    if False:",
+        ("tests/test_breaker_halts.py",),
+    ),
+    Claim(
+        "a non-empty agent_metadata is refused as an unrecorded input",
+        f"{AGENT}/model.py",
+        "        if any(value is not None for value in values.values()):",
+        "        if False:",
+        ("tests/test_breaker_halts.py",),
+    ),
 ]
 
 

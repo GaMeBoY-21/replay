@@ -21,7 +21,14 @@ from strands.types.tools import AgentTool
 
 from replay_events import ErrorInfo, Result, ToolEffect
 
-from ..kernel import BreakerTripped, RunContext, begin_effect, complete_effect
+from ..kernel import (
+    BreakerTripped,
+    RunContext,
+    begin_effect,
+    complete_effect,
+    record_trip,
+    will_execute,
+)
 
 
 class RecordedTool(AgentTool):
@@ -70,6 +77,20 @@ class ReplayHooks(HookProvider):
         registry.add_callback(AfterToolCallEvent, self._after_tool)
 
     def _before_model(self, event: BeforeModelCallEvent) -> None:
+        # A model-side ceiling is checked here, before the call, so a halt
+        # reaches the same place a tool halt does: the trip is appended, the
+        # call is cancelled, and the run ends with a message. Tripping inside
+        # `stream` instead raises out of the event loop mid-run, and resume
+        # needs a log that is complete up to the halt.
+        if self.halted is None:
+            seq = self.ctx.peek_seq()
+            if will_execute(self.ctx, seq):
+                try:
+                    self.ctx.breakers.check_ceilings(seq)
+                except BreakerTripped as trip:
+                    record_trip(self.ctx, self.ctx.next_seq(), trip)
+                    self.ctx.step_boundary(label="halted")
+                    self.halted = trip
         # A tool breaker has already cancelled its own call. Cancelling the next
         # model call is what stops the run, rather than handing the model an
         # error and letting it try again.

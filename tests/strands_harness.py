@@ -92,11 +92,18 @@ def tool_use(name: str, arguments: dict[str, Any], tool_use_id: str) -> list[dic
     ]
 
 
+# Usage rides on the metadata chunk, as it does from a real provider. Every
+# response carries one, so the budget breaker counts real recorded runs.
+USAGE = {"metadata": {"usage": {"inputTokens": 40, "outputTokens": 9, "totalTokens": 49},
+                      "metrics": {"latencyMs": 12}}}
+
+
 def tool_response(*calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
     chunks: list[dict[str, Any]] = [{"messageStart": {"role": "assistant"}}]
     for call in calls:
         chunks.extend(call)
     chunks.append({"messageStop": {"stopReason": "tool_use"}})
+    chunks.append(USAGE)
     return chunks
 
 
@@ -106,8 +113,7 @@ def text_response(text: str) -> list[dict[str, Any]]:
         {"contentBlockDelta": {"delta": {"text": text}}},
         {"contentBlockStop": {}},
         {"messageStop": {"stopReason": "end_turn"}},
-        {"metadata": {"usage": {"inputTokens": 40, "outputTokens": 9, "totalTokens": 49},
-                      "metrics": {"latencyMs": 12}}},
+        USAGE,
     ]
 
 

@@ -45,14 +45,28 @@ class BreakerConfig(BaseModel):
 def extract_tokens(result: Result) -> int:
     """Best-effort token count from a recorded model result.
 
+    A recorded Strands model result is a CHUNK LIST, and usage rides on its
+    `metadata` chunk. Reading only a dict here - the shape a hand-built test
+    result has - made the budget breaker count zero on every real run while
+    reporting a ceiling it was not enforcing.
+
     Deliberately tolerant: the budget breaker is a safety rail, and a provider
     that reports usage under a name not listed here should cost an under-count,
     never an exception in the middle of a run.
     """
     value: Any = result.value
+    if isinstance(value, list):
+        return sum(
+            _usage_tokens(chunk["metadata"].get("usage"))
+            for chunk in value
+            if isinstance(chunk, dict) and isinstance(chunk.get("metadata"), dict)
+        )
     if not isinstance(value, dict):
         return 0
-    usage = value.get("usage") or value.get("Usage") or {}
+    return _usage_tokens(value.get("usage") or value.get("Usage"))
+
+
+def _usage_tokens(usage: Any) -> int:
     if not isinstance(usage, dict):
         return 0
     for key in ("totalTokens", "total_tokens", "total"):
@@ -92,14 +106,28 @@ class Breakers:
         """Live: advance the counters, and refuse if a ceiling is crossed."""
         repeats = self._count(effect)
 
-        if seq >= self.config.max_effects:
-            raise BreakerTripped("depth", f"effect {seq} exceeds ceiling of {self.config.max_effects}")
+        self._check_depth(seq)
 
         if effect.effect_kind == "tool" and repeats >= self.config.max_repeats:
             raise BreakerTripped(
                 "loop", f"{effect.describe()} requested {repeats} times with identical arguments"
             )
 
+        self._check_budget_and_latency()
+
+    def check_ceilings(self, seq: int) -> None:
+        """The ceilings that do not depend on the effect's shape, checked BEFORE
+        a model call is made - which is the only point a model-side halt can end
+        a run cleanly, through BeforeModelCallEvent.cancel, rather than raising
+        out of the middle of a stream. Advances no counter."""
+        self._check_depth(seq)
+        self._check_budget_and_latency()
+
+    def _check_depth(self, seq: int) -> None:
+        if seq >= self.config.max_effects:
+            raise BreakerTripped("depth", f"effect {seq} exceeds ceiling of {self.config.max_effects}")
+
+    def _check_budget_and_latency(self) -> None:
         if self._tokens > self.config.max_tokens:
             raise BreakerTripped("budget", f"{self._tokens} tokens exceeds ceiling of {self.config.max_tokens}")
 

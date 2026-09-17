@@ -58,6 +58,15 @@ class RunContext:
         self._seq += 1
         return seq
 
+    def peek_seq(self) -> int:
+        """The seq the next effect will claim, without claiming it."""
+        return self._seq
+
+    @property
+    def next_eid(self) -> int:
+        """The eid the next appended event will receive."""
+        return self._eid
+
     def reserve(self, count: int) -> int:
         """Claim a block of eids and return the first.
 

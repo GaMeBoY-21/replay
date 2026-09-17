@@ -114,13 +114,32 @@ def begin_effect(ctx: RunContext, effect: Effect) -> Begun:
     try:
         ctx.breakers.check(effect, seq)
     except BreakerTripped as trip:
-        ctx.append(BreakerTrippedEvent(seq=seq, breaker=trip.name, detail=trip.detail))
+        record_trip(ctx, seq, trip)
         # The seq stays claimed. A resume replays to here and retries this same
         # step — against a raised ceiling, or it trips again immediately.
         raise
 
     ctx.append(EffectRequested(seq=seq, effect=effect, reads=ctx.snapshot_reads()))
     return Begun(seq, live=True)
+
+
+def will_execute(ctx: RunContext, seq: int) -> bool:
+    """Whether `begin_effect` at this seq would authorise running the effect.
+
+    False for a seq the log answers - replayed, a fork's shared prefix, or the
+    fork's substituted step. A pre-check that trips a breaker on a step the log
+    will serve would halt a replay for a ceiling the recording already passed.
+    """
+    if ctx.mode.kind == "replay" and seq <= ctx.mode.up_to:
+        return False
+    if ctx.mode.kind == "fork" and seq <= ctx.mode.at:
+        return False
+    return True
+
+
+def record_trip(ctx: RunContext, seq: int, trip: BreakerTripped) -> int:
+    """Append a breaker trip at a claimed seq. One place, whichever side tripped."""
+    return ctx.append(BreakerTrippedEvent(seq=seq, breaker=trip.name, detail=trip.detail))
 
 
 def complete_effect(ctx: RunContext, seq: int, result: Result) -> Result:
