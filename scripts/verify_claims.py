@@ -46,6 +46,7 @@ LOGDIR = BACKUPS / "logs"
 KERNEL = "packages/replay/src/replay/kernel"
 EVENTS = "packages/events/src/replay_events"
 STORE = "packages/replay/src/replay/store"
+AGENT = "packages/replay/src/replay/agent"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -176,6 +177,85 @@ CLAIMS: list[Claim] = [
         ".venv/\nvenv/",
         ".venv/ venv/",
         ("tests/test_repo_hygiene.py",),
+    ),
+    Claim(
+        "replay swaps in the recorded tool, so the real one never runs",
+        f"{AGENT}/hooks.py",
+        "        event.selected_tool = RecordedTool(effect.name, spec, begun.result)",
+        "        _unused = RecordedTool(effect.name, spec, begun.result)",
+        ("tests/test_gate_strands.py",),
+    ),
+    Claim(
+        "the recorded tool yields a bare ToolResult",
+        f"{AGENT}/hooks.py",
+        "        yield self._recorded.value",
+        '        yield {"toolResult": self._recorded.value}',
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "a live tool effect is closed when its result arrives",
+        f"{AGENT}/hooks.py",
+        "            complete_effect(self.ctx, seq, Result(value=event.result, error=error))",
+        "            pass",
+        ("tests/test_gate_strands.py",),
+    ),
+    Claim(
+        "a tool's duration never reaches the replayable log",
+        f"{AGENT}/hooks.py",
+        "            complete_effect(self.ctx, seq, Result(value=event.result, error=error))",
+        '            complete_effect(self.ctx, seq, Result(value={**event.result, "duration": event.duration}, error=error))',
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "a tool breaker cancels the call before the tool runs",
+        f"{AGENT}/hooks.py",
+        '            event.cancel_tool = f"halted by the {trip.name} breaker: {trip.detail}"',
+        "            pass",
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "ReplayModel fingerprints tool_choice",
+        f"{AGENT}/model.py",
+        "        system_prompt=system_prompt,\n        tool_choice=tool_choice,\n",
+        "        system_prompt=system_prompt,\n",
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "ReplayModel fingerprints system_prompt_content",
+        f"{AGENT}/model.py",
+        "        tool_choice=tool_choice,\n        system_prompt_content=system_prompt_content,\n    )",
+        "        tool_choice=tool_choice,\n    )",
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "structured_output is gated, not inherited",
+        f"{AGENT}/model.py",
+        "        raise NotImplementedError(\n"
+        '            "structured_output is not recorded by Replay; use tool calls through stream instead"\n'
+        "        )",
+        "        return None",
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "the sequential executor replaces the concurrent default",
+        f"{AGENT}/wiring.py",
+        "    agent.tool_executor = SequentialToolExecutor()",
+        "    pass",
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "agent.state is wrapped, so tool reads and writes are recorded",
+        f"{AGENT}/wiring.py",
+        "    agent.state = state\n",
+        "    pass\n",
+        ("tests/test_strands_seam.py",),
+    ),
+    Claim(
+        "replayed state is seeded from the log, because tools do not run",
+        f"{AGENT}/wiring.py",
+        "        seed_state(inner, ctx.log.events)",
+        "        pass",
+        ("tests/test_gate_strands.py",),
     ),
 ]
 

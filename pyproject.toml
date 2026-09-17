@@ -2,7 +2,7 @@
 name = "replay-workspace"
 version = "0.1.0"
 description = "Replay — a flight recorder and rewind button for AI agents"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = ["replay-events", "replay"]
 
 [tool.uv.sources]

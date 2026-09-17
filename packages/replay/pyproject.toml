@@ -2,8 +2,8 @@
 name = "replay"
 version = "0.1.0"
 description = "The Replay kernel, stores and agent seams"
-requires-python = ">=3.12"
-dependencies = ["replay-events", "pydantic>=2.7"]
+requires-python = ">=3.12,<3.13"
+dependencies = ["replay-events", "pydantic>=2.7", "strands-agents==1.56.0"]
 
 [build-system]
 requires = ["hatchling"]
