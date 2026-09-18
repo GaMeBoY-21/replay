@@ -15,20 +15,15 @@ from urllib.error import HTTPError
 
 import pytest
 
-pytest.skip(
-    "pending: awaits the canonical runs from stage 5 (a real-model wrong run, its fork "
-    "and a halted run in fixtures/canonical), which are not recorded yet",
-    allow_module_level=True,
-)
-
-import strands_harness as H  # noqa: E402
-from replay.api import Runner  # noqa: E402
-from replay.kernel import BreakerConfig  # noqa: E402
-from replay.local.server import LocalApp, serve  # noqa: E402
-from replay.scenario import SUBSTITUTED, TASK, load  # noqa: E402
-from replay.scenario.live import build_agent  # noqa: E402
-from replay.store.sqlite import SQLiteLogStore  # noqa: E402
-from replay.store.views import MemoryViewStore  # noqa: E402
+import strands_harness as H
+from replay.api import Runner
+from replay.kernel import BreakerConfig
+from replay.local.__main__ import open_store
+from replay.local.server import LocalApp, serve
+from replay.scenario import SUBSTITUTED, TASK, load
+from replay.scenario.live import build_agent
+from replay.store.sqlite import SQLiteLogStore
+from replay.store.views import MemoryViewStore
 
 pytestmark = pytest.mark.single_backend
 
@@ -50,6 +45,7 @@ def server(tmp_path):
     thread.start()
     yield f"http://127.0.0.1:{httpd.server_address[1]}", manifest
     httpd.shutdown()
+    httpd.server_close()
 
 
 def call(base, method, path, body=None):
@@ -60,7 +56,8 @@ def call(base, method, path, body=None):
         with urllib.request.urlopen(request, timeout=60) as response:
             return response.status, json.loads(response.read())
     except HTTPError as error:
-        return error.code, json.loads(error.read())
+        with error:
+            return error.code, json.loads(error.read())
 
 
 def test_the_canonical_runs_end_to_end_over_http(server):
@@ -89,8 +86,10 @@ def test_the_canonical_runs_end_to_end_over_http(server):
 
     halted = manifest["halted"]["run_id"]
     assert call(base, "POST", f"/api/runs/{halted}/resume", {})[0] == 400
+    # Raise the ceiling of whichever breaker halted it, and only that one.
+    raised = {"loop": "max_repeats", "depth": "max_effects"}[manifest["halt"]["breaker"]]
     status, resumed = call(base, "POST", f"/api/runs/{halted}/resume",
-                           {"breaker_overrides": {"max_repeats": 10**6}})
+                           {"breaker_overrides": {raised: 10**6}})
     assert status == 201 and resumed["status"] == "completed"
 
     status, diffed = call(base, "GET", f"/api/diff?a={wrong}&b={forked['run_id']}")
@@ -104,3 +103,14 @@ def test_the_app_is_served_from_the_same_origin(server):
     with urllib.request.urlopen(base + "/runs/some/client/route", timeout=10) as response:
         assert b"<title>Replay</title>" in response.read(), "the SPA handles its own routes"
     assert call(base, "GET", "/api/nowhere")[0] == 404
+
+
+def test_seeding_loads_every_canonical_run_once(tmp_path):
+    """`--seed` reads the manifest, loads parents before forks, and a second start
+    against the same database adds nothing."""
+    manifest = json.loads((CANONICAL / "manifest.json").read_text())
+    expected = set(manifest["roots"]) | {manifest["fork"]["run_id"]}
+    store = open_store(tmp_path / "local.db", CANONICAL)
+    assert {m.run_id for m in store.list_runs()} == expected
+    again = open_store(tmp_path / "local.db", CANONICAL)
+    assert len(again.read(manifest["wrong"]["run_id"])) == len(store.read(manifest["wrong"]["run_id"]))

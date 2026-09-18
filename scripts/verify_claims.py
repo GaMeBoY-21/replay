@@ -730,6 +730,13 @@ CLAIMS: list[Claim] = [
         '        return self._query(f"TREE#{root_id}")\n\n\ndef create_view_table',
         ("tests/test_api.py",),
     ),
+    Claim(
+        "the local server seeds the canonical runs it is pointed at",
+        f"{ROOT_PKG}/local/__main__.py",
+        "    if seed is not None:\n        load(store, seed)\n",
+        "",
+        ("tests/test_local_server.py",),
+    ),
 ]
 
 
