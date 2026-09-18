@@ -602,6 +602,112 @@ CLAIMS: list[Claim] = [
         '"metrics": {"latencyMs": 41}}}',
         ("tests/test_fixtures_are_current.py",),
     ),
+    Claim(
+        "GET /runs reads the projection and cannot touch the log",
+        f"{ROOT_PKG}/api/handlers.py",
+        "def list_runs(event, *, views, **_):\n"
+        '    """GET /runs - from the projection. One Query; never a Scan of the log."""\n'
+        '    return ok({"runs": views.list_summaries()})',
+        "def list_runs(event, *, views, store, **_):\n"
+        '    """GET /runs - from the projection. One Query; never a Scan of the log."""\n'
+        '    return ok({"runs": [{"run_id": m.run_id} for m in store.list_runs()]})',
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "the /api prefix is stripped once, at the router",
+        f"{ROOT_PKG}/api/app.py",
+        '    if path == API_PREFIX or path.startswith(API_PREFIX + "/"):\n'
+        '        path = path[len(API_PREFIX):] or "/"',
+        "    pass",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "fork takes exactly one of at_seq and at_step",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    if has_seq == has_step:",
+        "    if not has_seq and not has_step:",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "fork echoes the step it actually forked",
+        f"{ROOT_PKG}/api/handlers.py",
+        "        step = next((s for s, q in mapping.items() if q == seq), None)",
+        "        step = None",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "a retried fork returns the child that already exists",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    if _exists(store, child):\n"
+        '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
+        "    outcome = runs.fork(",
+        "    outcome = runs.fork(",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "a different mutation at the same step is a different fork",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    child = body.get(\"run_id\") or f\"{parent}-fork-{seq}-{_digest(body['mutation'])}\"",
+        '    child = body.get("run_id") or f"{parent}-fork-{seq}"',
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "resume without breaker_overrides is refused before anything runs",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    if not isinstance(overrides, dict) or not overrides:",
+        "    if not isinstance(overrides, dict):",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "a retried resume returns the run that already exists",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    if _exists(store, child):\n"
+        '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
+        "    outcome = runs.resume(",
+        "    outcome = runs.resume(",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "the projector rebuilds from the log rather than updating incrementally",
+        f"{ROOT_PKG}/projector/projector.py",
+        "    summary = read_models.summary(resolve(store, run_id).events, metadata)\n",
+        "    summary = read_models.summary(resolve(store, run_id).events, metadata)\n"
+        "    previous = views.get_summary(run_id) or {}\n"
+        '    summary["effect_count"] += previous.get("effect_count", 0)\n',
+        ("tests/test_projector.py",),
+    ),
+    Claim(
+        "a metadata change alone reaches the projector",
+        f"{ROOT_PKG}/projector/projector.py",
+        '        if pk.startswith("RUN#"):',
+        '        if pk.startswith("RUN#") and (keys.get("SK") or {}).get("S", "").startswith("EVT#"):',
+        ("tests/test_projector.py",),
+    ),
+    Claim(
+        "the projection recovers the answer from the log",
+        f"{ROOT_PKG}/projector/views.py",
+        "            if text.strip():\n                return text.strip()\n    return None",
+        "    return None",
+        ("tests/test_projector.py",),
+    ),
+    Claim(
+        "the projection names a halted step rather than leaving it blank",
+        f"{ROOT_PKG}/projector/views.py",
+        '            current["kind"] = "breaker"\n',
+        "",
+        ("tests/test_projector.py",),
+    ),
+    Claim(
+        "the SQLite view store lists runs from its RUNS index",
+        f"{STORE}/views.py",
+        "        return self._query(\"RUNS\")\n\n    def put_tree_entry(self, root_id: str, run_id: str, entry: dict) -> None:\n"
+        '        self._put(f"TREE#{root_id}", f"RUN#{run_id}", entry)\n\n    def tree(self, root_id: str) -> list[dict]:\n'
+        '        return self._query(f"TREE#{root_id}")\n\n\ndef create_view_table',
+        "        return []\n\n    def put_tree_entry(self, root_id: str, run_id: str, entry: dict) -> None:\n"
+        '        self._put(f"TREE#{root_id}", f"RUN#{run_id}", entry)\n\n    def tree(self, root_id: str) -> list[dict]:\n'
+        '        return self._query(f"TREE#{root_id}")\n\n\ndef create_view_table',
+        ("tests/test_api.py",),
+    ),
 ]
 
 
