@@ -1,9 +1,9 @@
-"""Record the canonical scenario runs and write them as fixtures.
+"""Derive the frontend's fixtures from the committed canonical runs.
 
     uv run python scripts/record_fixtures.py
 
-Deterministic: a scripted provider and a counting clock, so the output is the
-same every time and tests/test_fixtures_are_current.py can require it.
+Offline and deterministic: the runs themselves are recordings, and these are
+views of them. tests/test_fixtures_are_current.py requires the output to match.
 """
 
 from __future__ import annotations
@@ -12,17 +12,16 @@ import json
 import pathlib
 import sys
 
-from replay.scenario import fixtures, record_canonical
+from replay.scenario.views import fixtures
 from replay.store import MemoryLogStore
 
-OUT = pathlib.Path(__file__).resolve().parent.parent / "fixtures" / "scenario"
+REPO = pathlib.Path(__file__).resolve().parent.parent
+OUT = REPO / "fixtures" / "scenario"
 
 
 def main() -> int:
-    store = MemoryLogStore()
-    record_canonical(store)
+    produced = fixtures(MemoryLogStore(), REPO / "fixtures" / "canonical")
     OUT.mkdir(parents=True, exist_ok=True)
-    produced = fixtures(store)
     for stale in OUT.glob("*.json"):
         if stale.stem not in produced:
             stale.unlink()

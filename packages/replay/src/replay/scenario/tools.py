@@ -1,19 +1,19 @@
-"""The demo agent's tools, built to SCENARIO.md's memory-key table exactly.
+"""The scenario agent's tools.
 
-    Key                   Written at    Read at
-    invoice.currency      3             4, 7, 9, 12, 33
-    invoice.line_items    4             5-10
-    invoice.subtotal      11            12, 13
-    fx.rate               12            13
-    report.total          13            33, 39
+Tool names, signatures and docstrings are part of the model's prompt. Each is
+written as it would be for a real accounts-payable integration, and none of them
+says anything about which currency an invoice is in or what to do when a record
+does not say. `tests/test_scenario_tools.py` holds that structurally.
 
-Every edge the trace walks exists because of this table, so the reads and writes
-below are the table, and nothing else touches state. In Strands only a tool can
-read or write `agent.state`, so every row the table gives a memory access is a
-tool step, including the ones SCENARIO.md's run table labels `model`.
+What reaches `agent.state`, and so what the trace can walk:
 
-Tools are invoked only by the model. The SDK's direct-call path builds tool-use
-ids with `random.randint`, which no recording can reproduce.
+    invoice.<field>         record_invoice_field    - what the agent concluded, and nothing it read
+    invoice.<field>.basis   record_invoice_field    - why, in the agent's words
+    fx.rate, report.total   convert_invoice_total   - reads invoice.currency
+    report.submitted        submit_reconciliation   - reads report.total
+
+The currency the conversion uses is whatever the agent recorded. No tool records
+one on the agent's behalf.
 """
 
 from __future__ import annotations
@@ -27,164 +27,89 @@ def _state(tool_context):
     return tool_context.agent.state
 
 
-# ---------------------------------------------------------------- steps 2-4
+@tool
+def list_invoices(vendor: str) -> dict:
+    """List the open invoice IDs for a vendor."""
+    return {"vendor": vendor, "invoices": list(data.INVOICES.get(vendor, []))}
 
 
 @tool
-def list_invoices(vendor: str) -> list:
-    """List the open invoices for a vendor."""
-    return list(data.INVOICES.get(vendor, []))
-
-
-@tool(context=True)
-def get_invoice_header(invoice_id: str, currency: str, tool_context) -> dict:
-    """Fetch an invoice's header, and record the currency the invoice is denominated in.
-
-    Some vendors omit the currency from the header; in that case the `currency`
-    you pass is what gets recorded.
-    """
-    header = dict(data.HEADERS[invoice_id])
-    # Step 3. Reads nothing: the invoice id comes from the model's own context,
-    # and so does the currency, because this header has none. The model passes
-    # the currency it was asked to REPORT in - the poison.
-    _state(tool_context).set("invoice.currency", header.get("currency", currency))
-    return header
-
-
-@tool(context=True)
-def get_line_items(invoice_id: str, tool_context) -> list:
-    """Fetch an invoice's line items and record them."""
-    currency = _state(tool_context).get("invoice.currency")
-    items = [dict(item, unit=currency) for item in data.LINE_ITEMS[invoice_id]]
-    _state(tool_context).set("invoice.line_items", items)
-    return [dict(item) for item in data.LINE_ITEMS[invoice_id]]
-
-
-# ---------------------------------------------------------------- steps 5-10
-
-
-@tool(context=True)
-def format_line_items(start: int, end: int, tool_context) -> list:
-    """Format a range of the recorded line items for the report."""
-    items = _state(tool_context).get("invoice.line_items")
-    return [f"{item['sku']} {item['description']}: {item['amount']}" for item in items[start:end]]
-
-
-@tool(context=True)
-def label_amounts(start: int, end: int, tool_context) -> list:
-    """Label a range of the recorded line items with the invoice currency."""
-    items = _state(tool_context).get("invoice.line_items")
-    currency = _state(tool_context).get("invoice.currency")
-    symbol = "$" if currency == "USD" else f"{currency} "
-    return [f"{item['description']}: {symbol}{item['amount']:,}" for item in items[start:end]]
-
-
-# ---------------------------------------------------------------- steps 11-13
-
-
-@tool(context=True)
-def sum_line_items(tool_context) -> dict:
-    """Sum the recorded line items and record the subtotal."""
-    items = _state(tool_context).get("invoice.line_items")
-    subtotal = sum(item["amount"] for item in items)
-    _state(tool_context).set("invoice.subtotal", subtotal)
-    return {"subtotal": subtotal}
-
-
-@tool(context=True)
-def fx_convert(to: str, tool_context) -> dict:
-    """Convert the recorded subtotal from the invoice currency, and record the rate used."""
-    source = _state(tool_context).get("invoice.currency")
-    subtotal = _state(tool_context).get("invoice.subtotal")
-    rate = data.FX_RATES[(source, to)]
-    _state(tool_context).set("fx.rate", rate)
-    return {"rate": rate, "converted": round(subtotal * rate, 2)}
-
-
-@tool(context=True)
-def record_total(tool_context) -> dict:
-    """Record the converted total, from the recorded rate and subtotal."""
-    rate = _state(tool_context).get("fx.rate")
-    subtotal = _state(tool_context).get("invoice.subtotal")
-    if rate is None:
-        # In a fork that replaced fx_convert's result, the real tool never ran,
-        # so no rate was recorded. Say so rather than invent one.
-        return {"error": "no exchange rate has been recorded"}
-    total = round(subtotal * rate, 2)
-    _state(tool_context).set("report.total", total)
-    return {"total": total}
-
-
-@tool(context=True)
-def set_invoice_currency(currency: str, tool_context) -> dict:
-    """Correct the recorded invoice currency."""
-    _state(tool_context).set("invoice.currency", currency)
-    return {"currency": currency}
-
-
-# ---------------------------------------------------------------- steps 15-24
+def get_invoice_header(invoice_id: str) -> dict:
+    """Fetch the header of an invoice."""
+    if invoice_id not in data.HEADERS:
+        return {"error": f"invoice {invoice_id} not found"}
+    return dict(data.HEADERS[invoice_id])
 
 
 @tool
-def get_payment_terms(invoice_id: str) -> str:
-    """Look up an invoice's payment terms."""
-    return data.PAYMENT_TERMS[invoice_id]
+def get_line_items(invoice_id: str) -> dict:
+    """Fetch the line items of an invoice."""
+    if invoice_id not in data.LINE_ITEMS:
+        return {"error": f"invoice {invoice_id} not found"}
+    return {"invoice_id": invoice_id, "line_items": [dict(item) for item in data.LINE_ITEMS[invoice_id]]}
 
 
 @tool
-def vendor_lookup(name: str) -> dict:
+def get_remittance_details(invoice_id: str) -> dict:
+    """Fetch the payment instructions attached to an invoice."""
+    if invoice_id not in data.REMITTANCE:
+        return {"error": f"invoice {invoice_id} not found"}
+    return dict(data.REMITTANCE[invoice_id])
+
+
+@tool
+def lookup_vendor(name: str) -> dict:
     """Look up a vendor's master record."""
-    # Fails identically every time. The loop breaker keys on the call's shape,
-    # so the agent's retries must be byte-identical to be caught.
-    return {"error": f"404: no vendor record for {name!r}"}
-
-
-# ---------------------------------------------------------------- steps 25-39
-
-
-@tool
-def draft_report_section(section: str) -> str:
-    """Draft one section of the reconciliation report."""
-    return f"{section} section drafted"
+    return {"error": f"vendor master record not found: {name}"}
 
 
 @tool(context=True)
-def check_total(tool_context) -> dict:
-    """Sanity-check the recorded total against the invoice currency."""
-    # Step 33: the agent checking its own work, and passing, because the check
-    # reads the same poisoned key the error came from.
-    currency = _state(tool_context).get("invoice.currency")
-    total = _state(tool_context).get("report.total")
-    return {"plausible": True, "checked": f"{total:,.2f} {currency}"}
-
-
-@tool
-def format_report(style: str) -> str:
-    """Apply a formatting style to the report."""
-    return f"report formatted as {style}"
+def record_invoice_field(field: str, value: str, basis: str, tool_context) -> dict:
+    """Record a field on the reconciliation worksheet, with the basis for its value."""
+    name = field.strip().lower().removeprefix("invoice.")
+    _state(tool_context).set(f"invoice.{name}", value.strip())
+    _state(tool_context).set(f"invoice.{name}.basis", basis)
+    return {"recorded": f"invoice.{name}", "value": value.strip()}
 
 
 @tool(context=True)
-def compose_report(tool_context) -> str:
-    """Compose the final report line from the recorded total."""
+def convert_invoice_total(invoice_id: str, to_currency: str, tool_context) -> dict:
+    """Convert an invoice's total into another currency, using the invoice currency on the worksheet."""
+    if invoice_id not in data.LINE_ITEMS:
+        return {"error": f"invoice {invoice_id} not found"}
+    source = _state(tool_context).get("invoice.currency")
+    if source is None:
+        return {"error": "invoice.currency is not recorded on the worksheet; "
+                         "record it with record_invoice_field, field \"currency\""}
+    source, target = str(source).strip().upper(), to_currency.strip().upper()
+    rate = data.FX_RATES.get((source, target))
+    if rate is None:
+        return {"error": f"no exchange rate from {source} to {target}"}
+    total = sum(item["amount"] for item in data.LINE_ITEMS[invoice_id])
+    converted = round(total * rate, 2)
+    _state(tool_context).set("fx.rate", rate)
+    _state(tool_context).set("report.total", {"amount": converted, "currency": target})
+    return {"invoice_id": invoice_id, "from": source, "to": target, "rate": rate,
+            "total": total, "converted": converted}
+
+
+@tool(context=True)
+def submit_reconciliation(invoice_id: str, summary: str, tool_context) -> dict:
+    """Submit the completed reconciliation for an invoice."""
     total = _state(tool_context).get("report.total")
-    return f"Total: ${total:,.2f}"
+    if total is None:
+        return {"error": "no converted total is recorded on the worksheet"}
+    _state(tool_context).set("report.submitted", {"invoice_id": invoice_id, "total": total, "summary": summary})
+    return {"submitted": True, "invoice_id": invoice_id, "total": total}
 
 
 TOOLS = [
     list_invoices,
     get_invoice_header,
     get_line_items,
-    format_line_items,
-    label_amounts,
-    sum_line_items,
-    fx_convert,
-    record_total,
-    set_invoice_currency,
-    get_payment_terms,
-    vendor_lookup,
-    draft_report_section,
-    check_total,
-    format_report,
-    compose_report,
+    get_remittance_details,
+    lookup_vendor,
+    record_invoice_field,
+    convert_invoice_total,
+    submit_reconciliation,
 ]

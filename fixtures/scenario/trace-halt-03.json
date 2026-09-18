@@ -1,0 +1,10 @@
+{
+  "chain": [],
+  "flagged": {
+    "eid": 16,
+    "key": "invoice.currency",
+    "step": 6
+  },
+  "head": null,
+  "output_step": 16
+}

@@ -1,0 +1,10 @@
+{
+  "chain": [],
+  "flagged": {
+    "eid": 99,
+    "key": "report.total",
+    "step": 24
+  },
+  "head": null,
+  "output_step": 25
+}

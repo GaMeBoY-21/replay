@@ -16,7 +16,8 @@ import sys
 
 from ..api import Runner
 from ..kernel import BreakerConfig
-from ..scenario import TASK, build_agent
+from ..scenario.data import TASK
+from ..scenario.live import build_agent
 from ..store.sqlite import SQLiteLogStore
 from ..store.views import MemoryViewStore
 from .server import LocalApp, serve

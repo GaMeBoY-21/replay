@@ -1,0 +1,5297 @@
+{
+ "events": [
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 0,
+   "reads": [],
+   "seq": 0,
+   "ts": "2026-09-18T05:58:32.205740Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 1,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"invoice_id\":\"INV-2291\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 29741
+       },
+       "usage": {
+        "inputTokens": 613,
+        "outputTokens": 224,
+        "totalTokens": 837
+       }
+      }
+     }
+    ]
+   },
+   "seq": 0,
+   "substituted": false,
+   "ts": "2026-09-18T05:59:01.947809Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 2,
+   "label": "model",
+   "ts": "2026-09-18T05:59:01.948687Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "invoice_id": "INV-2291"
+    },
+    "effect_kind": "tool",
+    "name": "get_invoice_header",
+    "tool_use_id": "call_i7y1ncb6"
+   },
+   "eid": 3,
+   "reads": [],
+   "seq": 1,
+   "ts": "2026-09-18T05:59:01.949964Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 4,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_i7y1ncb6"
+    }
+   },
+   "seq": 1,
+   "substituted": false,
+   "ts": "2026-09-18T05:59:01.950671Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 5,
+   "label": "get_invoice_header",
+   "ts": "2026-09-18T05:59:01.950975Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 6,
+   "reads": [],
+   "seq": 2,
+   "ts": "2026-09-18T05:59:01.951888Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 7,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "get_line_items",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"invoice_id\":\"INV-2291\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 30046
+       },
+       "usage": {
+        "inputTokens": 717,
+        "outputTokens": 236,
+        "totalTokens": 953
+       }
+      }
+     }
+    ]
+   },
+   "seq": 2,
+   "substituted": false,
+   "ts": "2026-09-18T05:59:31.999192Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 8,
+   "label": "model",
+   "ts": "2026-09-18T05:59:31.999903Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "invoice_id": "INV-2291"
+    },
+    "effect_kind": "tool",
+    "name": "get_line_items",
+    "tool_use_id": "call_j03mf3iq"
+   },
+   "eid": 9,
+   "reads": [],
+   "seq": 3,
+   "ts": "2026-09-18T05:59:32.000491Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 10,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_j03mf3iq"
+    }
+   },
+   "seq": 3,
+   "substituted": false,
+   "ts": "2026-09-18T05:59:32.000966Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 11,
+   "label": "get_line_items",
+   "ts": "2026-09-18T05:59:32.001258Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_line_items",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 12,
+   "reads": [],
+   "seq": 4,
+   "ts": "2026-09-18T05:59:32.001934Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 13,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "get_remittance_details",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"invoice_id\":\"INV-2291\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 54620
+       },
+       "usage": {
+        "inputTokens": 926,
+        "outputTokens": 424,
+        "totalTokens": 1350
+       }
+      }
+     }
+    ]
+   },
+   "seq": 4,
+   "substituted": false,
+   "ts": "2026-09-18T06:00:26.622430Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 14,
+   "label": "model",
+   "ts": "2026-09-18T06:00:26.623359Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "invoice_id": "INV-2291"
+    },
+    "effect_kind": "tool",
+    "name": "get_remittance_details",
+    "tool_use_id": "call_sg92jguj"
+   },
+   "eid": 15,
+   "reads": [],
+   "seq": 5,
+   "ts": "2026-09-18T06:00:26.624796Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 16,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"beneficiary\": \"Meridian Supplies\", \"bank\": \"HDFC Bank\", \"branch\": \"Baner, Pune\", \"ifsc\": \"HDFC0004172\", \"account\": \"50200011223344\", \"reference\": \"INV-2291\"}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_sg92jguj"
+    }
+   },
+   "seq": 5,
+   "substituted": false,
+   "ts": "2026-09-18T06:00:26.625515Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 17,
+   "label": "get_remittance_details",
+   "ts": "2026-09-18T06:00:26.625850Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_line_items",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_remittance_details",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"beneficiary\": \"Meridian Supplies\", \"bank\": \"HDFC Bank\", \"branch\": \"Baner, Pune\", \"ifsc\": \"HDFC0004172\", \"account\": \"50200011223344\", \"reference\": \"INV-2291\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 18,
+   "reads": [],
+   "seq": 6,
+   "ts": "2026-09-18T06:00:26.626729Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 19,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "convert_invoice_total",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"invoice_id\":\"INV-2291\",\"to_currency\":\"USD\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 125479
+       },
+       "usage": {
+        "inputTokens": 1008,
+        "outputTokens": 1061,
+        "totalTokens": 2069
+       }
+      }
+     }
+    ]
+   },
+   "seq": 6,
+   "substituted": false,
+   "ts": "2026-09-18T06:02:32.106692Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 20,
+   "label": "model",
+   "ts": "2026-09-18T06:02:32.107719Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "invoice_id": "INV-2291",
+     "to_currency": "USD"
+    },
+    "effect_kind": "tool",
+    "name": "convert_invoice_total",
+    "tool_use_id": "call_hwa4tj68"
+   },
+   "eid": 21,
+   "reads": [],
+   "seq": 7,
+   "ts": "2026-09-18T06:02:32.109250Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 22,
+   "key": "invoice.currency",
+   "source": null,
+   "ts": "2026-09-18T06:02:32.109909Z",
+   "type": "MemoryRead"
+  },
+  {
+   "eid": 23,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_hwa4tj68"
+    }
+   },
+   "seq": 7,
+   "substituted": false,
+   "ts": "2026-09-18T06:02:32.110789Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 24,
+   "label": "convert_invoice_total",
+   "ts": "2026-09-18T06:02:32.111200Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_line_items",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_remittance_details",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"beneficiary\": \"Meridian Supplies\", \"bank\": \"HDFC Bank\", \"branch\": \"Baner, Pune\", \"ifsc\": \"HDFC0004172\", \"account\": \"50200011223344\", \"reference\": \"INV-2291\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291",
+          "to_currency": "USD"
+         },
+         "name": "convert_invoice_total",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 25,
+   "reads": [],
+   "seq": 8,
+   "ts": "2026-09-18T06:02:32.112151Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 26,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "convert_invoice_total",
+         "toolUseId": "call_d5qd7u3g"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"invoice_id\":\"INV-2291\",\"to_currency\":\"USD\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 190593
+       },
+       "usage": {
+        "inputTokens": 1033,
+        "outputTokens": 1544,
+        "totalTokens": 2577
+       }
+      }
+     }
+    ]
+   },
+   "seq": 8,
+   "substituted": false,
+   "ts": "2026-09-18T06:05:42.706568Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 27,
+   "label": "model",
+   "ts": "2026-09-18T06:05:42.707706Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "invoice_id": "INV-2291",
+     "to_currency": "USD"
+    },
+    "effect_kind": "tool",
+    "name": "convert_invoice_total",
+    "tool_use_id": "call_d5qd7u3g"
+   },
+   "eid": 28,
+   "reads": [],
+   "seq": 9,
+   "ts": "2026-09-18T06:05:42.709209Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 29,
+   "key": "invoice.currency",
+   "source": null,
+   "ts": "2026-09-18T06:05:42.709817Z",
+   "type": "MemoryRead"
+  },
+  {
+   "eid": 30,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_d5qd7u3g"
+    }
+   },
+   "seq": 9,
+   "substituted": false,
+   "ts": "2026-09-18T06:05:42.710225Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 31,
+   "label": "convert_invoice_total",
+   "ts": "2026-09-18T06:05:42.710474Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_line_items",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_remittance_details",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"beneficiary\": \"Meridian Supplies\", \"bank\": \"HDFC Bank\", \"branch\": \"Baner, Pune\", \"ifsc\": \"HDFC0004172\", \"account\": \"50200011223344\", \"reference\": \"INV-2291\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291",
+          "to_currency": "USD"
+         },
+         "name": "convert_invoice_total",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291",
+          "to_currency": "USD"
+         },
+         "name": "convert_invoice_total",
+         "toolUseId": "call_d5qd7u3g"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_d5qd7u3g"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 32,
+   "reads": [],
+   "seq": 10,
+   "ts": "2026-09-18T06:05:42.711713Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 33,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "lookup_vendor",
+         "toolUseId": "call_g4rpcoe8"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"name\":\"Meridian Supplies\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 215468
+       },
+       "usage": {
+        "inputTokens": 1058,
+        "outputTokens": 1511,
+        "totalTokens": 2569
+       }
+      }
+     }
+    ]
+   },
+   "seq": 10,
+   "substituted": false,
+   "ts": "2026-09-18T06:09:18.183610Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 34,
+   "label": "model",
+   "ts": "2026-09-18T06:09:18.186710Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "name": "Meridian Supplies"
+    },
+    "effect_kind": "tool",
+    "name": "lookup_vendor",
+    "tool_use_id": "call_g4rpcoe8"
+   },
+   "eid": 35,
+   "reads": [],
+   "seq": 11,
+   "ts": "2026-09-18T06:09:18.197004Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 36,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"error\": \"vendor master record not found: Meridian Supplies\"}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_g4rpcoe8"
+    }
+   },
+   "seq": 11,
+   "substituted": false,
+   "ts": "2026-09-18T06:09:18.201212Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 37,
+   "label": "lookup_vendor",
+   "ts": "2026-09-18T06:09:18.203270Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_line_items",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_remittance_details",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"beneficiary\": \"Meridian Supplies\", \"bank\": \"HDFC Bank\", \"branch\": \"Baner, Pune\", \"ifsc\": \"HDFC0004172\", \"account\": \"50200011223344\", \"reference\": \"INV-2291\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291",
+          "to_currency": "USD"
+         },
+         "name": "convert_invoice_total",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291",
+          "to_currency": "USD"
+         },
+         "name": "convert_invoice_total",
+         "toolUseId": "call_d5qd7u3g"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_d5qd7u3g"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "name": "Meridian Supplies"
+         },
+         "name": "lookup_vendor",
+         "toolUseId": "call_g4rpcoe8"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"vendor master record not found: Meridian Supplies\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_g4rpcoe8"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 38,
+   "reads": [],
+   "seq": 12,
+   "ts": "2026-09-18T06:09:18.214360Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 39,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "record_invoice_field",
+         "toolUseId": "call_o3bvt0y1"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"basis\":\"Invoice Header\",\"field\":\"invoice_id\",\"value\":\"INV-2291\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 287415
+       },
+       "usage": {
+        "inputTokens": 1082,
+        "outputTokens": 1891,
+        "totalTokens": 2973
+       }
+      }
+     }
+    ]
+   },
+   "seq": 12,
+   "substituted": false,
+   "ts": "2026-09-18T06:14:05.639548Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 40,
+   "label": "model",
+   "ts": "2026-09-18T06:14:05.646623Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "basis": "Invoice Header",
+     "field": "invoice_id",
+     "value": "INV-2291"
+    },
+    "effect_kind": "tool",
+    "name": "record_invoice_field",
+    "tool_use_id": "call_o3bvt0y1"
+   },
+   "eid": 41,
+   "reads": [],
+   "seq": 13,
+   "ts": "2026-09-18T06:14:05.656381Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 42,
+   "key": "invoice.invoice_id",
+   "reads": [],
+   "tombstone": false,
+   "ts": "2026-09-18T06:14:05.658560Z",
+   "type": "MemoryWrite",
+   "value": "INV-2291"
+  },
+  {
+   "eid": 43,
+   "key": "invoice.invoice_id.basis",
+   "reads": [],
+   "tombstone": false,
+   "ts": "2026-09-18T06:14:05.659254Z",
+   "type": "MemoryWrite",
+   "value": "Invoice Header"
+  },
+  {
+   "eid": 44,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"recorded\": \"invoice.invoice_id\", \"value\": \"INV-2291\"}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_o3bvt0y1"
+    }
+   },
+   "seq": 13,
+   "substituted": false,
+   "ts": "2026-09-18T06:14:05.659670Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 45,
+   "label": "record_invoice_field",
+   "ts": "2026-09-18T06:14:05.659939Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_i7y1ncb6"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_line_items",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_j03mf3iq"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_remittance_details",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"beneficiary\": \"Meridian Supplies\", \"bank\": \"HDFC Bank\", \"branch\": \"Baner, Pune\", \"ifsc\": \"HDFC0004172\", \"account\": \"50200011223344\", \"reference\": \"INV-2291\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_sg92jguj"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291",
+          "to_currency": "USD"
+         },
+         "name": "convert_invoice_total",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_hwa4tj68"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291",
+          "to_currency": "USD"
+         },
+         "name": "convert_invoice_total",
+         "toolUseId": "call_d5qd7u3g"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"invoice.currency is not recorded on the worksheet\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_d5qd7u3g"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "name": "Meridian Supplies"
+         },
+         "name": "lookup_vendor",
+         "toolUseId": "call_g4rpcoe8"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"error\": \"vendor master record not found: Meridian Supplies\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_g4rpcoe8"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "basis": "Invoice Header",
+          "field": "invoice_id",
+          "value": "INV-2291"
+         },
+         "name": "record_invoice_field",
+         "toolUseId": "call_o3bvt0y1"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"recorded\": \"invoice.invoice_id\", \"value\": \"INV-2291\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_o3bvt0y1"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 46,
+   "reads": [],
+   "seq": 14,
+   "ts": "2026-09-18T06:14:05.661457Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 47,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "To"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " reconcile"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " invoice"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " INV"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "-"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "9"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " from"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " Meridian"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " Supplies"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ":"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "."
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "  "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "**"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Invoice"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " Details"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "**:"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " The"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " invoice"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " was"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " issued"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " on"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "6"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "-"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "8"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "-"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "8"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " is"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " due"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " on"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "6"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "-"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "9"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "-"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "7"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " and"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " is"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " associated"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " with"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " PO"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "-"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " under"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " Net"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "3"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " terms"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "."
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "."
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "  "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "**"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Line"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " Items"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " &"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " Calculation"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "**:"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "    "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "*"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "   "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Steel"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " mounting"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " brackets"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ":"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " x"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " ="
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "    "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "*"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "   "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "An"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "od"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "ised"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " rail"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " sections"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ":"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "7"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " x"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "4"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " ="
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "9"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "8"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "    "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "*"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "   "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Fast"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "ener"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " assortment"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ":"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " x"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "6"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " ="
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "7"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "    "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "*"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "   "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Cable"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " trays"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ":"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "4"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " x"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " ="
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "4"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "    "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "*"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "   "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Inspection"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " and"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " certification"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ":"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " x"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "3"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "6"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " ="
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "3"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "6"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "    "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "*"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "   "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Freight"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ":"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " x"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " ="
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "5"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "    "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "*"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "   "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "**"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Total"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " Amount"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "**:"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " "
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "4"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "\n\n"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "Despite"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " attempting"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " to"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " convert"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " the"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " currency"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " since"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " the"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " base"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " currency"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " is"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " not"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " recorded"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " on"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " the"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " internal"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " worksheet"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " a"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " direct"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " conversion"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " to"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " USD"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " cannot"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " be"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " performed"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " automatically"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " by"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " the"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " system"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "."
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " However"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " the"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " total"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " amount"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " for"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " invoice"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " INV"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "-"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "2"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "9"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " is"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": " **"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "4"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "1"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": ","
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "0"
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "text": "**."
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "end_turn"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 450254
+       },
+       "usage": {
+        "inputTokens": 1114,
+        "outputTokens": 3128,
+        "totalTokens": 4242
+       }
+      }
+     }
+    ]
+   },
+   "seq": 14,
+   "substituted": false,
+   "ts": "2026-09-18T06:21:35.919237Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 48,
+   "label": "model",
+   "ts": "2026-09-18T06:21:35.931075Z",
+   "type": "StepBoundary"
+  }
+ ],
+ "metadata": {
+  "breaker_config": {
+   "max_effects": 80,
+   "max_latency_s": 300.0,
+   "max_repeats": 1000000,
+   "max_tokens": 1000000000
+  },
+  "created_at": null,
+  "eid_base": 0,
+  "forked_at_seq": null,
+  "label": null,
+  "mutated_event_id": null,
+  "parent_run_id": null,
+  "run_id": "corpus-01",
+  "status": "completed"
+ }
+}

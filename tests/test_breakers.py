@@ -108,3 +108,19 @@ def test_token_extraction_is_tolerant():
     assert extract_tokens(Result(value={"usage": "nonsense"})) == 0
     assert extract_tokens(Result(value={"usage": {"totalTokens": 7}})) == 7
     assert extract_tokens(Result(value={"usage": {"inputTokens": 3, "outputTokens": 4}})) == 7
+
+
+def test_the_loop_breaker_message_names_no_step():
+    """SCENARIO.md: the video must survive the retries landing somewhere slightly
+    different, so the message carries the count and nothing that locates it."""
+    import pytest
+
+    from replay.kernel import BreakerTripped
+    from replay_events import ToolEffect
+
+    breakers = Breakers(BreakerConfig(max_repeats=5))
+    effect = ToolEffect(name="lookup_vendor", arguments={"name": "Meridian Supplies"})
+    with pytest.raises(BreakerTripped) as tripped:
+        for seq in range(17, 30):
+            breakers.check(effect, seq)
+    assert tripped.value.detail == "Same call attempted 5 times. Suspended."

@@ -1,212 +1,173 @@
-"""The demo scenario, asserted against docs/SCENARIO.md.
+"""The scenario, asserted against runs a real model produced.
 
-The gate is the first test: flag Run B's output, walk back, land on step 3. The
-rest hold the scenario to the properties the demo depends on - most of which are
-invisible in the code and fatal on stage.
+Nothing here asserts a step number. A real model does not put its assumption at
+step 3; what is asserted is the structure the demo depends on - that the run
+went wrong, that the trace lands on the write that recorded the assumption, and
+that the model could have got it right.
 """
 
 from __future__ import annotations
 
 import json
+import pathlib
 
 import pytest
 
+import strands_harness as H
 from backends import new_store
-from replay.kernel import diff_runs, flag_output, resolve, step_index, step_to_seq, trace_view
-from replay.scenario import (
-    FORK_A,
-    RUN_A,
-    RUN_B,
-    record_canonical,
-    resume_run_a,
-)
-from replay.scenario import data
-from replay_events import MemoryRead, MemoryWrite, RunStatus
+from replay.agent import runs
+from replay.kernel import diff_runs, flag_output, resolve, step_index, trace_view
+from replay.scenario import SUBSTITUTED, TASK, conversion_seq, load
+from replay.scenario.corpus import load_run, run_files, summarise
+from replay.scenario.live import build_agent, classify
+from replay_events import BreakerTripped, EffectRequested, MemoryWrite
+
+CANONICAL = pathlib.Path(__file__).resolve().parent.parent / "fixtures" / "canonical"
 
 
 @pytest.fixture
 def canonical():
     store = new_store()
-    outcomes = record_canonical(store)
-    return store, outcomes
+    manifest = load(store, CANONICAL)
+    return store, manifest
 
 
-def effect_names(events):
-    steps = step_index(events)
-    return {steps[e.eid]: getattr(e.effect, "name", "model") for e in events if e.type == "EffectRequested"}
+def outcome(store, run_id):
+    return classify(resolve(store, run_id).events, store.get_metadata(run_id))
 
 
 # ---------------------------------------------------------------- the gate
 
 
-def test_the_trace_from_run_bs_output_lands_on_the_currency_assumption_at_step_3(canonical):
-    store, _ = canonical
-    events = resolve(store, RUN_B).events
+def test_the_trace_of_the_wrong_run_lands_on_the_write_that_recorded_the_assumption(canonical):
+    store, manifest = canonical
+    wrong = manifest["wrong"]["run_id"]
+    assert outcome(store, wrong)["outcome"] == "wrong"
+
+    events = resolve(store, wrong).events
     view = trace_view(events, flag_output(events))
-
-    assert view["output_step"] == 40
-    assert (view["flagged"]["step"], view["flagged"]["key"]) == (39, "report.total")
-
-    chain = [(link["step"], link["key"]) for link in view["chain"]]
-    assert chain == [
-        (3, "invoice.currency"),
-        (4, "invoice.line_items"),
-        (11, "invoice.subtotal"),
-        (12, "fx.rate"),
-        (13, "report.total"),
-    ]
     head = view["head"]
-    assert (head["step"], head["key"], head["value"]) == (3, "invoice.currency", "USD")
+    assert (head["key"], head["value"]) == ("invoice.currency", "USD")
+    assert "report.total" in [link["key"] for link in view["chain"]]
+
+    by_eid = {e.eid: e for e in events}
+    assert by_eid[head["eid"]].reads == [], "the assumption read no prior memory"
 
 
-# ---------------------------------------------------------------- the constraint
-
-
-def test_step_3_reads_no_prior_memory(canonical):
-    """If the poisoning step read anything, the trace would correctly walk past
-    it towards the run's origin, and the reveal would land on the wrong step."""
-    store, _ = canonical
-    events = resolve(store, RUN_B).events
+def test_the_assumption_was_recorded_by_the_model_through_the_recording_tool(canonical):
+    store, manifest = canonical
+    events = resolve(store, manifest["wrong"]["run_id"]).events
     steps = step_index(events)
-
-    at_step_3 = [e for e in events if steps[e.eid] == 3]
-    assert [e for e in at_step_3 if isinstance(e, MemoryRead)] == []
-    (write,) = [e for e in at_step_3 if isinstance(e, MemoryWrite)]
-    assert (write.key, write.value, write.reads) == ("invoice.currency", "USD", [])
-
-
-def test_memory_is_touched_where_the_scenario_table_says(canonical):
-    store, _ = canonical
-    events = resolve(store, RUN_B).events
-    steps = step_index(events)
-    touched: dict[str, dict[str, list[int]]] = {}
-    for event in events:
-        if isinstance(event, (MemoryRead, MemoryWrite)):
-            kind = "written" if isinstance(event, MemoryWrite) else "read"
-            touched.setdefault(event.key, {"written": [], "read": []})[kind].append(steps[event.eid])
-
-    assert touched == {
-        "invoice.currency": {"written": [3], "read": [4, 7, 9, 12, 33]},
-        # 6, 7 and 9 are the tool steps inside 5-10; 11 sums the items, which
-        # the step table has reading them and the memory-key table omits.
-        "invoice.line_items": {"written": [4], "read": [6, 7, 9, 11]},
-        "invoice.subtotal": {"written": [11], "read": [12, 13]},
-        "fx.rate": {"written": [12], "read": [13]},
-        "report.total": {"written": [13], "read": [33, 39]},
-    }
+    (write,) = [e for e in events if isinstance(e, MemoryWrite) and e.key == "invoice.currency"]
+    (tool,) = [e for e in events if isinstance(e, EffectRequested) and steps[e.eid] == steps[write.eid]]
+    assert tool.effect.name == "record_invoice_field"
+    assert tool.effect.arguments["value"].strip().upper() == "USD"
 
 
-def test_step_33_checks_its_own_work_and_agrees(canonical):
-    store, _ = canonical
-    events = resolve(store, RUN_B).events
-    steps = step_index(events)
-    (check,) = [e for e in events if e.type == "EffectCompleted" and steps[e.eid] == 33]
-    assert json.loads(check.result.value["content"][0]["text"])["plausible"] is True
+# ---------------------------------------------------------------- the contrast
 
 
-# ---------------------------------------------------------------- the data
+def test_the_model_could_have_got_it_right(canonical):
+    store, manifest = canonical
+    right = outcome(store, manifest["right"]["run_id"])
+    assert right["outcome"] == "right"
+    assert right["currency_used"].upper() == "INR"
+    assert right["converted_total"] == 492.0
 
 
-def test_the_invoice_header_has_no_currency_field(canonical):
-    assert "currency" not in data.HEADERS["INV-2291"]
-    store, _ = canonical
-    events = resolve(store, RUN_B).events
-    steps = step_index(events)
-    (header,) = [e for e in events if e.type == "EffectCompleted" and steps[e.eid] == 3]
-    assert "currency" not in json.loads(header.result.value["content"][0]["text"])
+def test_the_right_and_wrong_runs_were_asked_the_same_thing(canonical):
+    """They differ in the assumption and what follows from it, not in the input."""
+    store, manifest = canonical
+    first = {}
+    for role in ("wrong", "right"):
+        events = resolve(store, manifest[role]["run_id"]).events
+        first[role] = next(e for e in events if isinstance(e, EffectRequested)).effect.shape()
+    assert first["wrong"] == first["right"]
+
+    wrong, right = outcome(store, manifest["wrong"]["run_id"]), outcome(store, manifest["right"]["run_id"])
+    assert (wrong["currency_used"].upper(), right["currency_used"].upper()) == ("USD", "INR")
+    assert (wrong["converted_total"], right["converted_total"]) == (41000.0, 492.0)
 
 
-def test_the_line_items_sum_to_41000():
-    items = data.LINE_ITEMS["INV-2291"]
-    assert len(items) == 6
-    assert sum(item["amount"] for item in items) == 41000
+# ---------------------------------------------------------------- the fork
 
 
-# ---------------------------------------------------------------- steps and seqs
+def test_the_fork_replaces_the_conversion_and_owns_its_log_from_there(canonical):
+    store, manifest = canonical
+    fork, parent = manifest["fork"]["run_id"], manifest["wrong"]["run_id"]
+    metadata = store.get_metadata(fork)
+    assert metadata.parent_run_id == parent
+    assert metadata.forked_at_seq == conversion_seq(resolve(store, parent).events) == manifest["fork"]["at_seq"]
+
+    own = store.read(fork)
+    assert own[0].type == "EffectRequested" and own[0].seq == metadata.forked_at_seq
+    assert own[0].effect.name == "convert_invoice_total"
+    assert own[1].substituted and json.loads(own[1].result.value["content"][0]["text"]) == SUBSTITUTED
 
 
-def test_step_to_seq_maps_the_scenario_steps(canonical):
-    store, _ = canonical
-    events = resolve(store, RUN_B).events
-    mapping = step_to_seq(events)
-    names = effect_names(events)
-
-    assert len(mapping) == 40 and sorted(mapping) == list(range(1, 41))
-    assert names[3] == "get_invoice_header" and mapping[3] == 2
-    assert names[12] == "fx_convert" and mapping[12] == 11
-    assert names[40] == "model"
+def test_the_diff_shares_the_prefix_up_to_the_conversion(canonical):
+    store, manifest = canonical
+    diff = diff_runs(store, manifest["wrong"]["run_id"], manifest["fork"]["run_id"])
+    assert (diff["shared_by"], diff["shared_prefix"]) == ("storage", manifest["fork"]["at_seq"])
 
 
-def test_forking_step_12_replaces_fx_convert(canonical):
-    store, _ = canonical
-    metadata = store.get_metadata(FORK_A)
-    assert metadata.forked_at_seq == step_to_seq(resolve(store, RUN_B).events)[12]
-
-    (substituted,) = [e for e in store.read(FORK_A) if e.type == "EffectCompleted" and e.substituted]
-    requested = resolve(store, FORK_A).at(substituted.seq).effect
-    assert requested.name == "fx_convert"
-    assert "source currency INR" in substituted.result.value["content"][0]["text"]
-
-
-# ---------------------------------------------------------------- the runs
+def test_the_fork_replays_as_recorded_without_the_model(canonical):
+    store, manifest = canonical
+    fork = manifest["fork"]["run_id"]
+    metadata = store.get_metadata(fork)
+    if metadata.status.value != "completed":
+        pytest.skip(f"the fork ended {metadata.status.value}; it is kept as recorded")
+    H.reset_witnesses()
+    replayed = runs.replay(store, fork, lambda: build_agent(model=H.RefusingModel()), TASK)
+    assert replayed.answer.strip() == (outcome(store, fork)["answer"] or "")
 
 
-def test_run_b_is_wrong_and_the_fork_is_right(canonical):
-    store, outcomes = canonical
-    assert outcomes[RUN_B].answer.strip() == "Total: $41,000.00"
-    assert outcomes[FORK_A].answer.strip() == "Total: $492.00"
-
-    fork_state = outcomes[FORK_A].agent.state._inner.get()
-    assert fork_state["invoice.currency"] == "INR", "the agent read the warning and corrected its record"
-    assert fork_state["report.total"] == 492.0
+def test_the_manifest_reports_what_the_fork_actually_did(canonical):
+    store, manifest = canonical
+    assert manifest["fork"]["outcome"] == outcome(store, manifest["fork"]["run_id"])["outcome"]
 
 
-def test_the_fork_shares_eleven_steps_by_storage(canonical):
-    store, _ = canonical
-    diff = diff_runs(store, RUN_B, FORK_A)
-    assert (diff["shared_prefix"], diff["shared_by"], diff["divergence_seq"]) == (11, "storage", 11)
-    assert all(row["shared"] for row in diff["rows"][:11]) and not diff["rows"][11]["shared"]
-
-    own = store.read(FORK_A)
-    resolved = resolve(store, FORK_A).events
-    assert own[0].seq == 11
-    assert len(own) == len([e for e in resolved if e.eid >= own[0].eid]) < len(resolved)
+# ---------------------------------------------------------------- the halt
 
 
-def test_run_a_halts_on_the_fifth_vendor_lookup(canonical):
-    store, outcomes = canonical
-    assert outcomes[RUN_A].status == RunStatus.TRIPPED
-    events = resolve(store, RUN_A).events
-    steps = step_index(events)
-
-    completed_lookups = [
-        e for e in events if e.type == "EffectRequested" and getattr(e.effect, "name", None) == "vendor_lookup"
-    ]
-    assert [steps[e.eid] for e in completed_lookups] == [16, 18, 20, 22], "four attempts execute"
-    assert len({e.effect.shape() for e in completed_lookups}) == 1, "the retries are byte-identical"
-
-    (trip,) = [e for e in events if e.type == "BreakerTripped"]
-    assert steps[trip.eid] == 24 and trip.breaker == "loop"
-    assert step_to_seq(events)[24] == trip.seq
-    assert effect_names(events) == {k: v for k, v in effect_names(resolve(store, RUN_B).events).items() if k < 24}
+def test_the_halted_run_was_stopped_by_the_breaker_the_manifest_names(canonical):
+    store, manifest = canonical
+    halted = manifest["halted"]["run_id"]
+    metadata = store.get_metadata(halted)
+    assert metadata.status.value == "tripped"
+    ceiling_key = {"loop": "max_repeats", "depth": "max_effects"}[manifest["halt"]["breaker"]]
+    assert metadata.breaker_config[ceiling_key] == manifest["halt"]["ceiling"]
+    (trip,) = [e for e in store.read(halted) if isinstance(e, BreakerTripped)]
+    assert trip.breaker == manifest["halt"]["breaker"]
 
 
-def test_the_breaker_message_names_no_step(canonical):
-    store, _ = canonical
-    (trip,) = [e for e in resolve(store, RUN_A).events if e.type == "BreakerTripped"]
-    assert trip.detail == "Same call attempted 5 times. Suspended."
-    assert "step" not in trip.detail.lower() and str(trip.seq) not in trip.detail
+def test_every_halt_attempt_is_kept_and_only_the_last_tripped():
+    """Attempts are not re-rolled: each is committed, and recording stopped at the
+    first one the breaker halted."""
+    manifest = json.loads((CANONICAL / "manifest.json").read_text())
+    attempts = manifest["halt"]["attempts"]
+    assert [(CANONICAL / f"{a['run_id']}.json").exists() for a in attempts] == [True] * len(attempts)
+    assert [a["status"] for a in attempts] == ["completed"] * (len(attempts) - 1) + ["tripped"]
+    assert manifest["halted"]["run_id"] == attempts[-1]["run_id"]
 
 
-def test_run_a_resumes_with_an_override_and_re_trips_without_one(canonical):
-    store, _ = canonical
-    halted_seq = next(e.seq for e in store.read(RUN_A) if e.type == "BreakerTripped")
+def test_the_depth_ceiling_is_one_the_corpus_itself_exceeds():
+    """A ceiling no recorded run reaches would be decoration; one every run
+    reaches would halt the task itself. The corpus has runs on both sides."""
+    manifest = json.loads((CANONICAL / "manifest.json").read_text())
+    if manifest["halt"]["breaker"] != "depth":
+        pytest.skip("the halt is a loop halt")
+    corpus = pathlib.Path(__file__).resolve().parent.parent / "fixtures" / "corpus-qwen2.5-14b"
+    effects = [sum(isinstance(e, EffectRequested) for e in load_run(p)[1]) for p in run_files(corpus)]
+    ceiling = manifest["halt"]["ceiling"]
+    assert any(n > ceiling for n in effects) and any(n <= ceiling for n in effects)
 
-    again = resume_run_a(store, run_id="run-a-again")
-    assert again.status == RunStatus.TRIPPED
-    assert store.read("run-a-again")[0].type == "BreakerTripped"
-    assert store.read("run-a-again")[0].seq == halted_seq
 
-    resumed = resume_run_a(store, run_id="run-a-resumed", breaker_overrides={"max_repeats": 10})
-    assert resumed.status == RunStatus.COMPLETED
-    assert resumed.answer.strip() == "Total: $41,000.00"
+def test_the_canonical_runs_are_the_corpus_runs_unchanged():
+    corpus = pathlib.Path(__file__).resolve().parent.parent / "fixtures" / "corpus-qwen2.5-14b"
+    manifest = json.loads((CANONICAL / "manifest.json").read_text())
+    for role in ("wrong", "right"):
+        run_id = manifest[role]["run_id"]
+        assert (CANONICAL / f"{run_id}.json").read_text() == (corpus / f"{run_id}.json").read_text()
+        stats = {row["run_id"]: row for row in summarise([corpus / f"{run_id}.json"])["rows"]}
+        assert stats[run_id]["overall"] == role

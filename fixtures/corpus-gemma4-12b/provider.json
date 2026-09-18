@@ -1,0 +1,6 @@
+{
+  "context_length": 32768,
+  "model": "gemma4:12b",
+  "sampling": "the model's defaults; no parameters are sent",
+  "server": "ollama"
+}

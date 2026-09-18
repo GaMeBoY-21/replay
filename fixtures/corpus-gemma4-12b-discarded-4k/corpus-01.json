@@ -1,0 +1,945 @@
+{
+ "events": [
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 0,
+   "reads": [],
+   "seq": 0,
+   "ts": "2026-09-17T08:13:10.044624Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 1,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "get_invoice_header",
+         "toolUseId": "call_x9n1t72c"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"invoice_id\":\"INV-2291\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 18422
+       },
+       "usage": {
+        "inputTokens": 613,
+        "outputTokens": 139,
+        "totalTokens": 752
+       }
+      }
+     }
+    ]
+   },
+   "seq": 0,
+   "substituted": false,
+   "ts": "2026-09-17T08:13:28.468152Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 2,
+   "label": "model",
+   "ts": "2026-09-17T08:13:28.469170Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "invoice_id": "INV-2291"
+    },
+    "effect_kind": "tool",
+    "name": "get_invoice_header",
+    "tool_use_id": "call_x9n1t72c"
+   },
+   "eid": 3,
+   "reads": [],
+   "seq": 1,
+   "ts": "2026-09-17T08:13:28.470312Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 4,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_x9n1t72c"
+    }
+   },
+   "seq": 1,
+   "substituted": false,
+   "ts": "2026-09-17T08:13:28.470920Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 5,
+   "label": "get_invoice_header",
+   "ts": "2026-09-17T08:13:28.471266Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_x9n1t72c"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_x9n1t72c"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 6,
+   "reads": [],
+   "seq": 2,
+   "ts": "2026-09-17T08:13:28.472019Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 7,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "contentBlockStart": {
+       "start": {
+        "toolUse": {
+         "name": "get_line_items",
+         "toolUseId": "call_ryosx0uj"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockDelta": {
+       "delta": {
+        "toolUse": {
+         "input": "{\"invoice_id\":\"INV-2291\"}"
+        }
+       }
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "tool_use"
+      }
+     },
+     {
+      "metadata": {
+       "metrics": {
+        "latencyMs": 41915
+       },
+       "usage": {
+        "inputTokens": 717,
+        "outputTokens": 361,
+        "totalTokens": 1078
+       }
+      }
+     }
+    ]
+   },
+   "seq": 2,
+   "substituted": false,
+   "ts": "2026-09-17T08:14:10.388498Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 8,
+   "label": "model",
+   "ts": "2026-09-17T08:14:10.389477Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "arguments": {
+     "invoice_id": "INV-2291"
+    },
+    "effect_kind": "tool",
+    "name": "get_line_items",
+    "tool_use_id": "call_ryosx0uj"
+   },
+   "eid": 9,
+   "reads": [],
+   "seq": 3,
+   "ts": "2026-09-17T08:14:10.390781Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 10,
+   "result": {
+    "error": null,
+    "value": {
+     "content": [
+      {
+       "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+      }
+     ],
+     "status": "success",
+     "toolUseId": "call_ryosx0uj"
+    }
+   },
+   "seq": 3,
+   "substituted": false,
+   "ts": "2026-09-17T08:14:10.391585Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 11,
+   "label": "get_line_items",
+   "ts": "2026-09-17T08:14:10.391948Z",
+   "type": "StepBoundary"
+  },
+  {
+   "effect": {
+    "effect_kind": "model",
+    "messages": [
+     {
+      "content": [
+       {
+        "text": "Reconcile invoice INV-2291 from Meridian Supplies and report the total in USD."
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_invoice_header",
+         "toolUseId": "call_x9n1t72c"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"vendor\": \"Meridian Supplies\", \"issued\": \"2026-08-28\", \"due\": \"2026-09-27\", \"po_number\": \"PO-5512\", \"terms\": \"Net 30\"}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_x9n1t72c"
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "content": [
+       {
+        "toolUse": {
+         "input": {
+          "invoice_id": "INV-2291"
+         },
+         "name": "get_line_items",
+         "toolUseId": "call_ryosx0uj"
+        }
+       }
+      ],
+      "role": "assistant"
+     },
+     {
+      "content": [
+       {
+        "toolResult": {
+         "content": [
+          {
+           "text": "{\"invoice_id\": \"INV-2291\", \"line_items\": [{\"line\": 1, \"description\": \"Steel mounting brackets\", \"quantity\": 250, \"amount\": 12500}, {\"line\": 2, \"description\": \"Anodised rail sections\", \"quantity\": 70, \"amount\": 9800}, {\"line\": 3, \"description\": \"Fastener assortment\", \"quantity\": 120, \"amount\": 7200}, {\"line\": 4, \"description\": \"Cable trays\", \"quantity\": 45, \"amount\": 5400}, {\"line\": 5, \"description\": \"Inspection and certification\", \"quantity\": 1, \"amount\": 3600}, {\"line\": 6, \"description\": \"Freight\", \"quantity\": 1, \"amount\": 2500}]}"
+          }
+         ],
+         "status": "success",
+         "toolUseId": "call_ryosx0uj"
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "system_prompt": "You are an accounts-payable assistant. Use the available tools to complete the task.",
+    "system_prompt_content": [
+     {
+      "text": "You are an accounts-payable assistant. Use the available tools to complete the task."
+     }
+    ],
+    "tool_choice": null,
+    "tool_specs": [
+     {
+      "description": "List the open invoice IDs for a vendor.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "vendor": {
+          "description": "Parameter vendor",
+          "type": "string"
+         }
+        },
+        "required": [
+         "vendor"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "list_invoices"
+     },
+     {
+      "description": "Fetch the header of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_invoice_header"
+     },
+     {
+      "description": "Fetch the line items of an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_line_items"
+     },
+     {
+      "description": "Fetch the payment instructions attached to an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "get_remittance_details"
+     },
+     {
+      "description": "Look up a vendor's master record.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "name": {
+          "description": "Parameter name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "lookup_vendor"
+     },
+     {
+      "description": "Record a field on the reconciliation worksheet, with the basis for its value.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "basis": {
+          "description": "Parameter basis",
+          "type": "string"
+         },
+         "field": {
+          "description": "Parameter field",
+          "type": "string"
+         },
+         "value": {
+          "description": "Parameter value",
+          "type": "string"
+         }
+        },
+        "required": [
+         "field",
+         "value",
+         "basis"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "record_invoice_field"
+     },
+     {
+      "description": "Convert an invoice's total into another currency, using the invoice currency on the worksheet.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "to_currency": {
+          "description": "Parameter to_currency",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "to_currency"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "convert_invoice_total"
+     },
+     {
+      "description": "Submit the completed reconciliation for an invoice.",
+      "inputSchema": {
+       "json": {
+        "properties": {
+         "invoice_id": {
+          "description": "Parameter invoice_id",
+          "type": "string"
+         },
+         "summary": {
+          "description": "Parameter summary",
+          "type": "string"
+         }
+        },
+        "required": [
+         "invoice_id",
+         "summary"
+        ],
+        "type": "object"
+       }
+      },
+      "name": "submit_reconciliation"
+     }
+    ]
+   },
+   "eid": 12,
+   "reads": [],
+   "seq": 4,
+   "ts": "2026-09-17T08:14:10.392943Z",
+   "type": "EffectRequested"
+  },
+  {
+   "eid": 13,
+   "result": {
+    "error": null,
+    "value": [
+     {
+      "messageStart": {
+       "role": "assistant"
+      }
+     },
+     {
+      "contentBlockStart": {
+       "start": {}
+      }
+     },
+     {
+      "contentBlockStop": {}
+     },
+     {
+      "messageStop": {
+       "stopReason": "end_turn"
+      }
+     }
+    ]
+   },
+   "seq": 4,
+   "substituted": false,
+   "ts": "2026-09-17T08:15:33.801518Z",
+   "type": "EffectCompleted"
+  },
+  {
+   "eid": 14,
+   "label": "model",
+   "ts": "2026-09-17T08:15:33.802278Z",
+   "type": "StepBoundary"
+  }
+ ],
+ "metadata": {
+  "breaker_config": {
+   "max_effects": 80,
+   "max_latency_s": 300.0,
+   "max_repeats": 1000000,
+   "max_tokens": 1000000000
+  },
+  "created_at": null,
+  "eid_base": 0,
+  "forked_at_seq": null,
+  "label": null,
+  "mutated_event_id": null,
+  "parent_run_id": null,
+  "run_id": "corpus-01",
+  "status": "completed"
+ }
+}

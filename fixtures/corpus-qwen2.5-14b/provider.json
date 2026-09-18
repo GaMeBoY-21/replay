@@ -1,0 +1,6 @@
+{
+  "context_length": 16384,
+  "model": "qwen2.5:14b",
+  "sampling": "the model's defaults; no parameters are sent",
+  "server": "ollama"
+}
