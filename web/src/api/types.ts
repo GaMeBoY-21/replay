@@ -143,3 +143,9 @@ export interface Corpus {
   fetched_remittance: number;
   rows: CorpusRow[];
 }
+
+export interface Capabilities {
+  live: boolean;
+  model: string | null;
+  reason: string | null;
+}

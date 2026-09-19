@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { currentMode, type Mode } from "./api/source";
 import { Empty } from "./components/States";
+import { useLive } from "./components/Live";
 import { Link, useRoute, type Route } from "./router";
 import { CorpusView } from "./views/CorpusView";
 import { DiffView } from "./views/DiffView";
@@ -29,6 +30,7 @@ function Page({ route }: { route: Route }) {
 export function App() {
   const route = useRoute();
   const [mode, setMode] = useState<Mode | null>(null);
+  const { live, model } = useLive();
   useEffect(() => {
     currentMode().then(setMode);
   }, []);
@@ -56,11 +58,15 @@ export function App() {
             <li><Link href="/corpus" aria-current={here("corpus")}>Corpus</Link></li>
           </ul>
         </nav>
-        {mode === "fixtures" && (
-          <p className="source-note" role="status">
-            Recorded responses — no local server. Forking and resuming need it running.
-          </p>
-        )}
+        <p className="source-note" role="status">
+          {mode === "fixtures"
+            ? "Recorded responses — no server."
+            : live === false
+              ? "Replaying recordings — no model here."
+              : live && model
+                ? `Live on ${model}`
+                : null}
+        </p>
       </header>
       <main id="main" tabIndex={-1}>
         <Page route={route} />

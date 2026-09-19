@@ -46,7 +46,8 @@ EVIDENCE = ("get_invoice_header", "get_line_items", "get_remittance_details", "l
 
 
 def api_requests(runs: list[str], manifest: dict) -> list[str]:
-    paths = ["/api/runs"]
+    # Recorded with no runner: a recording cannot run the agent, and says so.
+    paths = ["/api/runs", "/api/capabilities"]
     for run_id in runs:
         paths += [f"/api/runs/{run_id}", f"/api/runs/{run_id}/events?limit=1000",
                   f"/api/runs/{run_id}/trace/output"]

@@ -1,3 +1,5 @@
 # Generated on every build from packages/events; never edited by hand.
 src/types/schema.json
 src/types/events.d.ts
+# Written by tsc -b during the build.
+*.tsbuildinfo

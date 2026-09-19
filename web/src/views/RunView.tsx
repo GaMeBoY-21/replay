@@ -6,6 +6,7 @@ import { useResource } from "../api/useResource";
 import { checkBasis, evidenceFromLog } from "../api/basis";
 import { Answer } from "../components/Answer";
 import { BasisPanel } from "../components/BasisPanel";
+import { ResumePanel } from "../components/ResumePanel";
 import { RunGraph } from "../components/RunGraph";
 import { TracePanel } from "../components/TracePanel";
 import { Failure, Loading, StatusChip } from "../components/States";
@@ -122,18 +123,11 @@ export function RunView({ id, step, traced }: { id: string; step: number | null;
           </div>
         )}
 
-        {summary.halted && (
-          <div className="halt-note" role="note">
-            <p>
-              <strong>Halted by the {summary.halted.name} breaker:</strong>{" "}
-              <span className="mono">{summary.halted.detail}</span>
-            </p>
-          </div>
-        )}
+        {summary.halted && <ResumePanel runId={id} summary={summary} metadata={metadata} />}
 
         <div className="run-summary">
           {summary.answer ? (
-            <Answer text={summary.answer} />
+            <Answer text={summary.answer} label={summary.halted ? "Last response before the halt" : "Final answer"} />
           ) : (
             <p className="quiet">This run gave no final answer.</p>
           )}

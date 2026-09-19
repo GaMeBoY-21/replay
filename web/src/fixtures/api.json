@@ -1,4 +1,12 @@
 {
+ "/api/capabilities": {
+  "body": {
+   "live": false,
+   "model": null,
+   "reason": "This deployment replays recordings and has no model to run the agent with."
+  },
+  "status": 200
+ },
  "/api/diff?a=qwen-00&b=qwen-00-fork-8": {
   "body": {
    "a": "qwen-00",

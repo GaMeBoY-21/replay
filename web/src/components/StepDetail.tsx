@@ -4,6 +4,7 @@
 import { durationMs, type EffectDetail } from "../api/events";
 import type { Step } from "../api/types";
 import { Link } from "../router";
+import { ForkPanel } from "./ForkPanel";
 
 export interface Provenance {
   /** The run the substituted response was recorded in, if known. */
@@ -12,8 +13,13 @@ export interface Provenance {
   parent: string;
 }
 
-function Json({ value }: { value: unknown }) {
-  return <pre className="json">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre>;
+/** Recorded JSON. It can scroll, so it takes focus: a keyboard user can scroll it too. */
+function Json({ value, label }: { value: unknown; label: string }) {
+  return (
+    <pre className="json" tabIndex={0} aria-label={label}>
+      {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+    </pre>
+  );
 }
 
 export function StepDetail({
@@ -75,9 +81,9 @@ export function StepDetail({
       {effect?.kind === "tool" && (
         <>
           <h3>Arguments</h3>
-          <Json value={effect.arguments ?? {}} />
+          <Json value={effect.arguments ?? {}} label="Arguments" />
           <h3>Result</h3>
-          <Json value={effect.result} />
+          <Json value={effect.result} label="Result" />
         </>
       )}
 
@@ -90,7 +96,7 @@ export function StepDetail({
                 {effect.calls.map((call, i) => (
                   <li key={i}>
                     <span className="tool-name">{call.name}</span>
-                    <Json value={call.input} />
+                    <Json value={call.input} label={`${call.name} arguments`} />
                   </li>
                 ))}
               </ol>
@@ -99,7 +105,7 @@ export function StepDetail({
           {effect.text && (
             <>
               <h3>Said</h3>
-              <p className="said">{effect.text}</p>
+              <p className="said" tabIndex={0} aria-label="What the model said">{effect.text}</p>
             </>
           )}
           {!effect.text && effect.calls.length === 0 && <p className="quiet">The response carried no text and asked for nothing.</p>}
@@ -107,6 +113,8 @@ export function StepDetail({
       )}
 
       {!effect && step.kind !== "breaker" && <p className="quiet">The events for this step are not loaded.</p>}
+
+      {step.kind === "model" && !step.substituted && <ForkPanel runId={runId} step={step} />}
 
       <h3>Memory</h3>
       {step.reads.length === 0 && step.writes.length === 0 ? (

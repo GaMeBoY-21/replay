@@ -865,6 +865,55 @@ CLAIMS: list[Claim] = [
         ' and w.key == "invoice.currency.basis"), None),',
         ("tests/test_web.py",),
     ),
+    Claim(
+        "a deployment with no model refuses to run the agent, and says why",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    return unavailable(NOT_LIVE) if runner is None or not runner.live else None",
+        "    return None",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "capabilities report live only when the runner can run the agent",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    live = runner is not None and runner.live",
+        "    live = True",
+        ("tests/test_api.py",),
+    ),
+    Claim(
+        "fork and resume are shown as unavailable, with the reason, where there is no model",
+        f"{WEB}/components/Live.tsx",
+        "  if (live === false) return <Unavailable action={action} />;",
+        "",
+        ("tests/test_web_e2e.py",),
+    ),
+    Claim(
+        "the UI forks by step and sends another run's recorded response",
+        f"{WEB}/components/ForkPanel.tsx",
+        "        at_step: step.step,",
+        "        at_seq: step.seq,",
+        ("tests/test_web_e2e.py",),
+    ),
+    Claim(
+        "resume sends a raised ceiling for the breaker that halted the run",
+        f"{WEB}/components/ResumePanel.tsx",
+        "        breaker_overrides: { [ceiling.key]: next },",
+        "        breaker_overrides: { max_repeats: next },",
+        ("tests/test_web_e2e.py",),
+    ),
+    Claim(
+        "text that scrolls can be reached and scrolled from the keyboard",
+        f"{WEB}/components/StepDetail.tsx",
+        '<p className="said" tabIndex={0} aria-label="What the model said">',
+        '<p className="said">',
+        ("tests/test_web_e2e.py",),
+    ),
+    Claim(
+        "the faintest text still meets contrast, checked on the rendered pages",
+        f"{WEB}/styles/tokens.css",
+        "  --ink: #E6EDF4; --mute: #93A4B8; --faint: #7A8CA1;",
+        "  --ink: #E6EDF4; --mute: #93A4B8; --faint: #3A4C61;",
+        ("tests/test_web_e2e.py",),
+    ),
 ]
 
 

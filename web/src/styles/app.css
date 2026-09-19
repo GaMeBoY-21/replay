@@ -429,6 +429,40 @@ main:focus-visible { outline-offset: -2px; }
 .outcome-wrong { color: var(--ch-fault); }
 @media (max-width: 1100px) { .basis-grid { grid-template-columns: 1fr; } }
 
+/* ---------------------------------------------------------------- halt and resume */
+
+.halt {
+  display: grid; gap: var(--s2); max-width: 90ch; padding: var(--s4); border-radius: var(--r2);
+  background: color-mix(in srgb, var(--ch-fault) 7%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--ch-fault) 45%, var(--rule));
+}
+.halt-detail { color: var(--ch-fault); font-size: var(--t4); }
+.resume { display: grid; gap: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--rule); }
+.resume label { font-weight: 600; }
+.resume-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s3); }
+.resume input {
+  width: 9ch; padding: var(--s2) var(--s3); border-radius: var(--r2);
+  font: 500 var(--t3)/1.2 var(--mono); color: var(--ink);
+  background: var(--ground); border: 1px solid var(--mute);
+}
+.resume input[aria-invalid="true"] { border-color: var(--ch-fault); }
+.state-inline { font-size: var(--t2); color: var(--ink); }
+.fork { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--rule); border-radius: var(--r2); background: var(--ground); }
+.fork-form { display: grid; gap: var(--s2); justify-items: start; }
+.fork-fields { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.fork-fields label { display: grid; gap: var(--s1); font-size: var(--t2); color: var(--mute); }
+.fork-fields select, .fork-fields input {
+  padding: var(--s2) var(--s3); border-radius: var(--r2); font: 500 var(--t3)/1.2 var(--mono);
+  color: var(--ink); background: var(--panel); border: 1px solid var(--mute);
+}
+.fork-fields input { width: 8ch; }
+.fork-preview { font-size: var(--t2); }
+.unavailable {
+  display: grid; gap: var(--s2); padding: var(--s3); border-radius: var(--r2);
+  border: 1px dashed var(--mute); background: var(--panel);
+}
+.state-inline-error { color: var(--ink); padding-left: var(--s3); border-left: 2px solid var(--ch-fault); }
+
 /* ---------------------------------------------------------------- 720p projector */
 
 @media (max-width: 1100px) {
