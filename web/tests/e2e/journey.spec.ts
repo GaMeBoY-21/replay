@@ -55,3 +55,16 @@ test("resuming a halted run requires a raised ceiling and continues live", async
   await expect(page).toHaveURL(new RegExp(`/runs/${halted}-resume-`));
   await expect(page.locator(".run-title-row").getByText("completed")).toBeVisible();
 });
+
+test("every corpus run opens from the corpus page, not only the demo's", async ({ page }) => {
+  await page.goto(`${LIVE}/corpus`);
+  await page.getByRole("link", { name: /^CAD\s*qwen-06/ }).click();
+  await expect(page).toHaveURL(/\/runs\/qwen-06$/);
+  await expect(page.getByRole("heading", { level: 1, name: "qwen-06" })).toBeVisible();
+  await expect(page.locator(".graph-rows").getByText('↦ invoice.currency = "CAD"')).toBeVisible();
+
+  await page.goto(`${LIVE}/`);
+  const rest = page.getByRole("table", { name: "The rest of the corpus" });
+  await expect(rest.getByRole("rowheader")).toHaveCount(9);
+  await expect(page.getByRole("table", { name: "Runs" }).getByRole("rowheader").first()).toContainText(manifest.wrong.run_id);
+});

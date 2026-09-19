@@ -32,9 +32,9 @@ function money(value: number | null): string {
   return `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
 
+/** Every corpus run is served by the local app, so every one is a link. */
 function RunName({ id }: { id: string }) {
-  const canonical = [manifest.wrong.run_id, manifest.right.run_id].includes(id);
-  return canonical ? <Link href={`/runs/${id}`} className="mono">{id}</Link> : <span className="mono">{id}</span>;
+  return <Link href={`/runs/${encodeURIComponent(id)}`} className="mono">{id}</Link>;
 }
 
 export function CorpusView() {
@@ -82,13 +82,15 @@ export function CorpusView() {
             const currency = writtenCurrency(row);
             return (
               <li key={row.run_id} className={`strip-cell strip-${row.overall}`}>
-                <span className="strip-currency">
-                  {currency?.placeholder ? (
-                    <><span aria-hidden="true">&lt;…&gt;</span><span className="visually-hidden">a placeholder</span></>
-                  ) : currency ? currency.label : "none"}
-                </span>
-                <span className="strip-run mono">{row.run_id}</span>
-                <span className="strip-outcome">{row.overall}</span>
+                <Link href={`/runs/${encodeURIComponent(row.run_id)}`} className="strip-link">
+                  <span className="strip-currency">
+                    {currency?.placeholder ? (
+                      <><span aria-hidden="true">&lt;…&gt;</span><span className="visually-hidden">a placeholder</span></>
+                    ) : currency ? currency.label : "none"}
+                  </span>
+                  <span className="strip-run mono">{row.run_id}</span>
+                  <span className="strip-outcome">{row.overall}</span>
+                </Link>
               </li>
             );
           })}

@@ -2,7 +2,7 @@
 // The demo's runs come first, in the order the story tells them; a fork sits
 // under the run it was forked from.
 
-import { manifest } from "../api/source";
+import { corpus, manifest } from "../api/source";
 import type { Summary } from "../api/types";
 import { useEffect, useState } from "react";
 import { usePoll, useResource } from "../api/useResource";
@@ -83,15 +83,31 @@ export function RunList() {
     );
   }
 
+  // Three groups, in this order: the demo's runs exactly as the story tells them,
+  // then the rest of the corpus, then anything else - a run started or forked
+  // here from a run in neither. A fork sits under the run it was forked from.
   const ids = new Set(all.map((r) => r.run_id));
-  const roots = all.filter((r) => !r.parent_run_id || !ids.has(r.parent_run_id)).sort((a, b) => rank(a) - rank(b) || a.run_id.localeCompare(b.run_id));
+  const demo = new Set(ORDER.filter(Boolean) as string[]);
+  manifest.roots.forEach((id) => demo.add(id));
+  const inCorpus = new Set(corpus.rows.map((r) => r.run_id));
+  const roots = all
+    .filter((r) => !r.parent_run_id || !ids.has(r.parent_run_id))
+    .sort((a, b) => rank(a) - rank(b) || a.run_id.localeCompare(b.run_id));
   const children = (id: string) => all.filter((r) => r.parent_run_id === id).sort((a, b) => a.run_id.localeCompare(b.run_id));
-  const ordered: { run: Summary; child: boolean }[] = [];
-  const visit = (run: Summary, depth: number) => {
-    ordered.push({ run, child: depth > 0 });
-    children(run.run_id).forEach((c) => visit(c, depth + 1));
+  const group = (keep: (r: Summary) => boolean) => {
+    const rows: { run: Summary; child: boolean }[] = [];
+    const visit = (run: Summary, depth: number) => {
+      rows.push({ run, child: depth > 0 });
+      children(run.run_id).forEach((c) => visit(c, depth + 1));
+    };
+    roots.filter(keep).forEach((r) => visit(r, 0));
+    return rows;
   };
-  roots.forEach((r) => visit(r, 0));
+  const groups = [
+    { key: "demo", title: null, rows: group((r) => demo.has(r.run_id)) },
+    { key: "corpus", title: "The rest of the corpus", rows: group((r) => !demo.has(r.run_id) && inCorpus.has(r.run_id)) },
+    { key: "other", title: "Other runs", rows: group((r) => !demo.has(r.run_id) && !inCorpus.has(r.run_id)) },
+  ].filter((g) => g.rows.length > 0);
 
   return (
     <section className="list" aria-labelledby="list-title">
@@ -102,23 +118,27 @@ export function RunList() {
           from {manifest.model}.
         </p>
       </header>
-      <div className="diff-scroll">
-        <table className="list-table">
-          <caption className="visually-hidden">Every recorded run, forks beneath the run they were forked from.</caption>
-          <thead>
-            <tr>
-              <th scope="col">Run</th>
-              <th scope="col">Status</th>
-              <th scope="col" className="num">Steps</th>
-              <th scope="col">Answer</th>
-              <th scope="col">Lineage</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ordered.map(({ run, child }) => <Row key={run.run_id} run={run} child={child} />)}
-          </tbody>
-        </table>
-      </div>
+      {groups.map((g) => (
+        <div key={g.key} className="list-group">
+          {g.title && <h2 id={`list-${g.key}`} className="list-group-title">{g.title}</h2>}
+          <div className="diff-scroll">
+            <table className="list-table" aria-labelledby={g.title ? `list-${g.key}` : "list-title"}>
+              <thead>
+                <tr>
+                  <th scope="col">Run</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num">Steps</th>
+                  <th scope="col">Answer</th>
+                  <th scope="col">Lineage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.rows.map(({ run, child }) => <Row key={run.run_id} run={run} child={child} />)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
     </section>
   );
 }

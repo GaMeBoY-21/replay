@@ -43,4 +43,22 @@ describe("the corpus view", () => {
       ['"EUR"', "13", "$44,280", "no"],
     ]);
   });
+
+  it("links every run in the strip and the wrong-runs table to its run page", () => {
+    open();
+    const strip = screen.getByRole("heading", { name: "What each run wrote as the invoice currency" }).nextElementSibling as HTMLElement;
+    const stripLinks = within(strip).getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(stripLinks).toEqual(corpus.rows.map((r) => `/runs/${r.run_id}`));
+
+    const section = screen.getByRole("heading", { name: "The wrong runs, and where the currency was written" }).closest("section")!;
+    const wrongLinks = within(section).getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(wrongLinks).toEqual(corpus.rows.filter((r) => r.overall === "wrong").map((r) => `/runs/${r.run_id}`));
+  });
+
+  it("opens a corpus run that is not one of the demo's runs", async () => {
+    history.replaceState(null, "", "/runs/qwen-06");
+    render(<App />);
+    const list = await screen.findByRole("list", { name: "Steps of qwen-06" });
+    expect(within(list).getAllByRole("button").some((b) => /writes invoice\.currency = "CAD"/.test(b.getAttribute("aria-label") ?? ""))).toBe(true);
+  });
 });

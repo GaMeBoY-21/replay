@@ -826,8 +826,8 @@ CLAIMS: list[Claim] = [
     Claim(
         "the run list places a fork beneath the run it was forked from",
         f"{WEB}/views/RunList.tsx",
-        "    ordered.push({ run, child: depth > 0 });",
-        "    ordered.push({ run, child: false });",
+        "      rows.push({ run, child: depth > 0 });",
+        "      rows.push({ run, child: false });",
         ("tests/test_web.py",),
     ),
     Claim(
@@ -1003,6 +1003,41 @@ CLAIMS: list[Claim] = [
         '  if (halted.name === "cancelled") return <ContinuePanel runId={runId} />;\n',
         "",
         ("tests/test_web_e2e.py",),
+    ),
+    Claim(
+        "--corpus loads every recorded run in the directory",
+        f"{ROOT_PKG}/local/__main__.py",
+        "            load_into(store, path)\n            added.append(run_id)",
+        "            added.append(run_id)",
+        ("tests/test_local_server.py",),
+    ),
+    Claim(
+        "a run in both the canonical set and the corpus is loaded once",
+        f"{ROOT_PKG}/local/__main__.py",
+        "        if run_id not in known:",
+        "        if True:",
+        ("tests/test_local_server.py",),
+    ),
+    Claim(
+        "every run in the corpus's tables links to its run page",
+        f"{WEB}/views/CorpusView.tsx",
+        '  return <Link href={`/runs/${encodeURIComponent(id)}`} className="mono">{id}</Link>;',
+        '  return <span className="mono">{id}</span>;',
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "every run in the corpus strip links to its run page",
+        f"{WEB}/views/CorpusView.tsx",
+        '<Link href={`/runs/${encodeURIComponent(row.run_id)}`} className="strip-link">',
+        '<Link href="/corpus" className="strip-link">',
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "the run list shows the rest of the corpus below the demo's runs",
+        f"{WEB}/views/RunList.tsx",
+        "group((r) => !demo.has(r.run_id) && inCorpus.has(r.run_id))",
+        "group(() => false)",
+        ("tests/test_web.py",),
     ),
 ]
 

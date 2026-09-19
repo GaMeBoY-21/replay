@@ -342,6 +342,7 @@ main:focus-visible { outline-offset: -2px; }
 /* ---------------------------------------------------------------- run list */
 
 .list { display: grid; gap: var(--s4); }
+.list-group-title { margin-top: var(--s3); }
 .list-table {
   width: 100%; border-collapse: separate; border-spacing: 0;
   background: var(--panel); border: 1px solid var(--rule); border-radius: var(--r2);
@@ -387,6 +388,9 @@ main:focus-visible { outline-offset: -2px; }
 }
 .strip-right { border-top: 3px solid var(--ch-ok); }
 .strip-wrong { border-top: 3px solid var(--ch-fault); background: color-mix(in srgb, var(--ch-fault) 7%, var(--panel)); }
+.strip-link { display: grid; gap: 2px; text-decoration: none; color: var(--ink); }
+.strip-link:hover .strip-run { text-decoration: underline; }
+.strip-cell:has(.strip-link:hover) { border-color: var(--mute); }
 .strip-currency { font: 600 var(--t4)/1.2 var(--mono); }
 .strip-run { font-size: var(--t1); color: var(--mute); }
 .strip-outcome { font-size: var(--t1); color: var(--mute); text-transform: uppercase; letter-spacing: 0.06em; }

@@ -24,7 +24,7 @@ sys.path.insert(0, str(REPO / "tests"))
 import strands_harness as H  # noqa: E402
 from replay.api import Runner  # noqa: E402
 from replay.kernel import BreakerConfig  # noqa: E402
-from replay.local.__main__ import open_store  # noqa: E402
+from replay.local.__main__ import add_corpus, open_store  # noqa: E402
 from replay.local.server import LocalApp, serve  # noqa: E402
 from replay.scenario.data import TASK  # noqa: E402
 from replay.scenario.live import build_agent  # noqa: E402
@@ -64,6 +64,7 @@ def main() -> int:
     parser.add_argument("--slow", type=float, default=0.0, help="seconds each model call takes")
     args = parser.parse_args()
     store = open_store(pathlib.Path(tempfile.mkdtemp()) / "e2e.db", REPO / "fixtures" / "canonical")
+    add_corpus(store, REPO / "fixtures" / "corpus-qwen2.5-14b")
     runner = Runner(factory=lambda: scripted_agent(args.slow), prompt=TASK, breakers=BreakerConfig(max_effects=80),
                     live=not args.no_model, model=None if args.no_model else "scripted test double")
     httpd = serve(LocalApp(store, MemoryViewStore(), runner, static_dir=REPO / "web" / "dist"), port=args.port)

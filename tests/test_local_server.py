@@ -175,3 +175,40 @@ def test_the_command_line_accepts_the_flag(monkeypatch, tmp_path):
     with pytest.raises(Stop):
         main(["--db", str(tmp_path / "x.db"), "--replay-only"])
     assert started == {"live": False}
+
+
+CORPUS = CANONICAL.parent / "corpus-qwen2.5-14b"
+
+
+def test_the_corpus_loads_beside_the_canonical_runs_each_run_once(tmp_path):
+    from replay.scenario.corpus import load_run, run_files
+
+    manifest = json.loads((CANONICAL / "manifest.json").read_text())
+    canonical = set(manifest["roots"]) | {manifest["fork"]["run_id"]}
+    corpus = {load_run(p)[0].run_id for p in run_files(CORPUS)}
+    assert canonical & corpus == {manifest["wrong"]["run_id"], manifest["right"]["run_id"]}
+
+    store = open_store(tmp_path / "local.db", CANONICAL, [CORPUS])
+    assert {m.run_id for m in store.list_runs()} == canonical | corpus
+    wrong = manifest["wrong"]["run_id"]
+    recorded = json.loads((CORPUS / f"{wrong}.json").read_text())["events"]
+    assert len(store.read(wrong)) == len(recorded), "a run in both directories is loaded once"
+
+    again = open_store(tmp_path / "local.db", CANONICAL, [CORPUS])
+    assert len(again.list_runs()) == len(canonical | corpus), "a restart adds nothing"
+
+
+def test_the_command_line_takes_a_corpus(monkeypatch, tmp_path):
+    seen = {}
+
+    class Stop(Exception):
+        pass
+
+    def fake_serve(app, host, port):
+        seen["runs"] = len(app.store.list_runs())
+        raise Stop
+
+    monkeypatch.setattr("replay.local.__main__.serve", fake_serve)
+    with pytest.raises(Stop):
+        main(["--db", str(tmp_path / "x.db"), "--seed", str(CANONICAL), "--corpus", str(CORPUS)])
+    assert seen == {"runs": 16}

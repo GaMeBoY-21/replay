@@ -3,7 +3,7 @@
     uv run python web/scripts/record_fixtures.py          # write
     uv run python web/scripts/record_fixtures.py --check  # fail if anything differs
 
-The canonical runs are loaded into a store and every GET the frontend makes is
+The canonical runs and the corpus are loaded into a store and every GET the frontend makes is
 sent through the same `dispatch` the local server and the Lambda call. Each
 response is committed exactly as the API returned it, so the frontend in fixture
 mode reads what the API emits, not a hand-made approximation of it.
@@ -27,6 +27,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 from replay.api import dispatch
 from replay.api.app import http_event
+from replay.local.__main__ import add_corpus
 from replay.projector.projector import rebuild_all
 from replay.scenario import load
 from replay.scenario.corpus import load_run, run_files
@@ -156,6 +157,8 @@ def with_steps(manifest: dict, store) -> dict:
 def produce() -> dict[str, str]:
     store, views = MemoryLogStore(), MemoryViewStore()
     manifest = with_steps(load(store, CANONICAL), store)
+    # What `python -m replay.local --seed fixtures/canonical --corpus <corpus>` serves.
+    add_corpus(store, CORPUS)
     rebuild_all(store, views)
     runs = sorted(m.run_id for m in store.list_runs())
     responses = {path: call(path, store, views) for path in api_requests(runs, manifest)}
