@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import mimetypes
 import pathlib
 import sys
 import threading
@@ -40,6 +39,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
+from .. import site
 from ..api import API_PREFIX, dispatch
 from ..api.app import http_event
 from replay_events import RunEnded, RunStatus
@@ -149,19 +149,10 @@ class LocalApp:
         thread.join(timeout)
         return not thread.is_alive()
 
-    def static(self, path: str) -> tuple[int, str, bytes]:
+    def static(self, path: str) -> site.File:
         if self.static_dir is None:
-            return 404, "application/json", json.dumps({"error": "no frontend is being served"}).encode()
-        root = self.static_dir.resolve()
-        target = (root / path.lstrip("/")).resolve()
-        if root not in target.parents and target != root:
-            return 404, "application/json", b'{"error": "not found"}'
-        if not target.is_file():
-            target = root / "index.html"  # the SPA handles its own routes
-        if not target.is_file():
-            return 404, "application/json", b'{"error": "not found"}'
-        kind = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
-        return 200, kind, target.read_bytes()
+            return site.File(404, "application/json", json.dumps({"error": "no frontend is being served"}).encode())
+        return site.serve(self.static_dir, path)
 
 
 def make_handler(app: LocalApp):
@@ -179,9 +170,12 @@ def make_handler(app: LocalApp):
                 self.send_response(result["statusCode"])
                 self.send_header("content-type", result["headers"]["content-type"])
             else:
-                status, kind, payload = app.static(url.path)
-                self.send_response(status)
-                self.send_header("content-type", kind)
+                served = app.static(url.path)
+                payload = served.body
+                self.send_response(served.status)
+                self.send_header("content-type", served.content_type)
+                if served.cache_control:
+                    self.send_header("cache-control", served.cache_control)
             self.send_header("content-length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)

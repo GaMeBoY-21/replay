@@ -157,3 +157,79 @@ def test_the_api_entry_never_loads_strands():
     """)
     result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=120)
     assert result.returncode == 0 and result.stdout.strip() == "ok", result.stdout + result.stderr
+
+
+# ---------------------------------------------------------------- the frontend, without CloudFront
+
+
+FONT = bytes(range(256)) * 4  # not valid UTF-8: it must travel as base64
+
+
+@pytest.fixture
+def site_dir(tmp_path, monkeypatch):
+    root = tmp_path / "site"
+    (root / "assets").mkdir(parents=True)
+    (root / "index.html").write_text('<!doctype html><div id="root"></div><script src="/assets/index-abc123.js"></script>')
+    (root / "assets" / "index-abc123.js").write_text("console.log('replay')")
+    (root / "assets" / "archivo-latin-400-normal-x1.woff2").write_bytes(FONT)
+    (tmp_path / "secret.txt").write_text("outside the site")
+    import replay.aws.api as api
+
+    monkeypatch.setattr(api, "SITE", root)
+    return root
+
+
+def get(path, method="GET"):
+    from replay.aws.api import handler
+
+    return handler(gateway_event(method, path))
+
+
+def test_every_app_route_is_the_app_and_is_never_cached(deployed, site_dir):
+    for path in ["/", "/runs/qwen-00", "/diff", "/corpus", "/runs/qwen-00-fork-8"]:
+        response = get(path)
+        assert response["statusCode"] == 200, path
+        assert response["headers"]["content-type"].startswith("text/html")
+        assert response["headers"]["cache-control"] == "no-cache"
+        assert '<div id="root">' in response["body"] and response["isBase64Encoded"] is False
+
+
+def test_hashed_assets_are_served_with_their_type_and_cached_for_good(deployed, site_dir):
+    response = get("/assets/index-abc123.js")
+    assert (response["statusCode"], response["isBase64Encoded"]) == (200, False)
+    assert response["headers"]["content-type"].startswith("text/javascript")
+    assert response["headers"]["cache-control"] == "public, max-age=31536000, immutable"
+    assert response["body"] == "console.log('replay')"
+
+
+def test_binary_files_travel_as_base64(deployed, site_dir):
+    response = get("/assets/archivo-latin-400-normal-x1.woff2")
+    assert (response["statusCode"], response["isBase64Encoded"]) == (200, True)
+    assert response["headers"]["content-type"] == "font/woff2"
+    assert base64.b64decode(response["body"]) == FONT
+
+
+def test_an_unknown_api_path_is_still_a_json_404_not_the_app(deployed, site_dir):
+    response = get("/api/nowhere")
+    assert response["statusCode"] == 404
+    assert "no route" in json.loads(response["body"])["error"]
+
+
+def test_a_missing_file_is_a_404_not_the_app(deployed, site_dir):
+    assert get("/assets/missing-000.js")["statusCode"] == 404
+
+
+@pytest.mark.parametrize("path", [
+    "/../secret.txt", "/assets/../../secret.txt", "/%2e%2e/secret.txt", "/assets/%2E%2E/%2e%2e/secret.txt",
+    "/%252e%252e/secret.txt", "/..%2fsecret.txt", "/assets/..%5c..%5csecret.txt",
+])
+def test_paths_that_leave_the_site_are_404(deployed, site_dir, path):
+    response = get(path)
+    assert response["statusCode"] == 404, path
+    assert "outside the site" not in response["body"]
+
+
+def test_only_reads_reach_the_site(deployed, site_dir):
+    assert get("/", method="POST")["statusCode"] == 404
+    head = get("/", method="HEAD")
+    assert (head["statusCode"], head["body"]) == (200, "")

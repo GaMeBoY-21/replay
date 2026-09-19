@@ -1,0 +1,10 @@
+[project]
+name = "replay-infra"
+version = "0.1.0"
+description = "The Replay stack on AWS: replay-only hosting of the recorded runs"
+requires-python = ">=3.12,<3.13"
+dependencies = ["aws-cdk-lib>=2.170,<3", "constructs>=10.3,<11"]
+
+# Not a workspace member: CDK stays out of the runtime and test environments.
+[tool.uv]
+package = false

@@ -27,6 +27,43 @@ BUNDLE = REPO / ".scratch" / "lambda-bundle"
 REGION = "ap-south-1"
 
 
+def get(handler, path: str) -> dict:
+    return handler({"version": "2.0", "rawPath": path, "rawQueryString": "",
+                    "requestContext": {"http": {"method": "GET", "path": path}, "stage": "$default"},
+                    "headers": {}, "isBase64Encoded": False})
+
+
+def check_site(handler) -> list[str]:
+    """The frontend, as the api function serves it without CloudFront, from the bundle's site/."""
+    import base64
+
+    site = BUNDLE / "site"
+    js = next((site / "assets").glob("index-*.js")).name
+    font = next((site / "assets").glob("*.woff2")).name
+    lines = []
+
+    for path in ["/", "/runs/qwen-00"]:
+        response = get(handler, path)
+        assert response["statusCode"] == 200 and response["headers"]["content-type"].startswith("text/html"), path
+        assert '<div id="root">' in response["body"], path
+        lines.append(f"GET {path} -> 200 text/html")
+
+    response = get(handler, f"/assets/{js}")
+    assert response["statusCode"] == 200 and response["headers"]["content-type"].startswith("text/javascript")
+    assert response["headers"]["cache-control"].endswith("immutable") and not response["isBase64Encoded"]
+    lines.append(f"GET /assets/{js} -> 200 text/javascript, immutable")
+
+    response = get(handler, f"/assets/{font}")
+    assert response["statusCode"] == 200 and response["headers"]["content-type"] == "font/woff2"
+    assert response["isBase64Encoded"] and base64.b64decode(response["body"]) == (site / "assets" / font).read_bytes()
+    lines.append(f"GET /assets/{font} -> 200 font/woff2, base64")
+
+    response = get(handler, "/api/nowhere")
+    assert response["statusCode"] == 404 and "no route" in json.loads(response["body"])["error"]
+    lines.append("GET /api/nowhere -> 404 JSON")
+    return lines
+
+
 def main() -> int:
     if not BUNDLE.is_dir():
         sys.exit("no bundle - run scripts/bundle_lambda.sh first")
@@ -84,8 +121,11 @@ def main() -> int:
         body = json.loads(response["body"])
         assert response["statusCode"] == 200, response
         assert {r["run_id"] for r in body["runs"]} == set(runs), "every seeded run is listed"
+        site_checks = check_site(handler)
 
     print(f"bundled api handler: GET /api/runs -> {response['statusCode']}, {len(body['runs'])} runs listed")
+    for line in site_checks:
+        print(f"bundled api handler: {line}")
     print(f"import of the bundled entry points: {imported * 1000:.0f} ms; they do not load strands")
     return 0
 

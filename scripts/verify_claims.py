@@ -1060,6 +1060,31 @@ CLAIMS: list[Claim] = [
         'RUNNER = Runner(factory=_no_agent, prompt="", live=True, model=None)',
         ("tests/test_aws_entry.py",),
     ),
+    Claim(
+        "a request path that would leave the site is a 404",
+        f"{ROOT_PKG}/site.py",
+        "    if any(p == \"..\" for p in parts):\n"
+        "        return NOT_FOUND\n"
+        "    target = root.joinpath(*parts).resolve() if parts else root / \"index.html\"\n"
+        "    if target != root and root not in target.parents:\n"
+        "        return NOT_FOUND\n",
+        "    target = root.joinpath(*parts).resolve() if parts else root / \"index.html\"\n",
+        ("tests/test_aws_entry.py",),
+    ),
+    Claim(
+        "without CloudFront an unknown /api path is still a JSON 404, not the app",
+        f"{ROOT_PKG}/aws/api.py",
+        "    if path == API_PREFIX or path.startswith(API_PREFIX + \"/\"):",
+        "    if path == API_PREFIX:",
+        ("tests/test_aws_entry.py",),
+    ),
+    Claim(
+        "binary files from the site travel as base64",
+        f"{ROOT_PKG}/site.py",
+        'TEXT = ("text/", "application/json", "image/svg+xml")',
+        'TEXT = ("text/", "application/json", "image/svg+xml", "font/")',
+        ("tests/test_aws_entry.py",),
+    ),
 ]
 
 
