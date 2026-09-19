@@ -19,6 +19,11 @@ its log as effects are recorded. One lock admits one live run at a time: the
 kernel is sequential inside a run, and a second live request is told which run
 is going rather than queued behind it for minutes. Nothing else takes that lock,
 and the SQLite store locks each of its own operations.
+
+A live run can be cancelled: its breakers are handed a flag, and it stops at the
+next effect exactly as a breaker halt stops it. And a run that was still marked
+running when the server last stopped was interrupted - nothing is driving it any
+more - so on start it gets a closing event saying so, and that status.
 """
 
 from __future__ import annotations
@@ -37,8 +42,31 @@ from urllib.parse import parse_qsl, urlsplit
 
 from ..api import API_PREFIX, dispatch
 from ..api.app import http_event
+from replay_events import RunEnded, RunStatus
+
 from ..api.http import conflict, created, response
+from ..kernel import resolve
+from ..kernel.context import RunContext
 from ..projector.projector import project_run, rebuild_all
+
+INTERRUPTED = "The server stopped while this run was live. Everything it recorded up to then is kept."
+
+
+def end_interrupted_runs(store) -> list[str]:
+    """Close every run still marked running: none can be, on a fresh start.
+
+    The closing event goes through RunContext.append, the only path that stamps
+    an eid, at the run's next eid - so the log is appended to, never rewritten.
+    """
+    ended = []
+    for metadata in store.list_runs():
+        if metadata.status != RunStatus.RUNNING:
+            continue
+        context = RunContext(metadata.run_id, store, eid_base=resolve(store, metadata.run_id).next_eid)
+        context.append(RunEnded(status=RunStatus.INTERRUPTED.value, detail=INTERRUPTED))
+        store.put_metadata(metadata.model_copy(update={"status": RunStatus.INTERRUPTED}))
+        ended.append(metadata.run_id)
+    return ended
 
 
 class LocalApp:
@@ -47,11 +75,14 @@ class LocalApp:
 
     def __init__(self, store, views, runner, static_dir: pathlib.Path | None = None) -> None:
         self.store, self.views = store, views
-        self.runner = None if runner is None else dataclasses.replace(runner, launch=self._launch)
+        self.runner = (None if runner is None
+                       else dataclasses.replace(runner, launch=self._launch, cancel=self.cancel))
         self.static_dir = static_dir
         self._live = threading.Lock()  # live runs only; reads never take it
         self.live_run: str | None = None
         self._live_thread: threading.Thread | None = None
+        self._cancel: threading.Event | None = None
+        self.interrupted = end_interrupted_runs(store)
         rebuild_all(store, views)
 
     def api(self, method: str, path: str, query: dict[str, str], body: str | None) -> dict[str, Any]:
@@ -71,12 +102,13 @@ class LocalApp:
         if not self._live.acquire(blocking=False):
             return conflict(f"{self.live_run} is running live; one live run at a time. Wait for it to end.")
         self.live_run = run_id
+        self._cancel = cancel = threading.Event()
         failure: list[BaseException] = []
         finished = threading.Event()
 
         def drive() -> None:
             try:
-                job()
+                job(cancel)
             except BaseException as exc:  # the kernel has marked the run failed; say why here
                 failure.append(exc)
                 traceback.print_exc(file=sys.stderr)
@@ -86,6 +118,7 @@ class LocalApp:
                         project_run(self.store, self.views, run_id)
                 finally:
                     self.live_run = None
+                    self._cancel = None
                     self._live.release()
                     finished.set()
 
@@ -99,6 +132,14 @@ class LocalApp:
             return response(500, {"error": f"{run_id} did not start{detail}"})
         return created({**echo, "run_id": run_id, "created": True,
                         "status": self.store.get_metadata(run_id).status.value})
+
+    def cancel(self, run_id: str) -> dict[str, Any]:
+        """Ask the live run to stop at its next effect. It ends as a halt does."""
+        cancel = self._cancel
+        if self.live_run != run_id or cancel is None:
+            return conflict(f"{run_id} is not running live, so there is nothing to cancel")
+        cancel.set()
+        return response(202, {"run_id": run_id, "status": "cancelling"})
 
     def wait_for_live_run(self, timeout: float | None = None) -> bool:
         """For tests and shutdown: block until the live run, if any, has ended."""

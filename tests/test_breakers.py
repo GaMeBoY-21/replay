@@ -124,3 +124,18 @@ def test_the_loop_breaker_message_names_no_step():
         for seq in range(17, 30):
             breakers.check(effect, seq)
     assert tripped.value.detail == "Same call attempted 5 times. Suspended."
+
+
+def test_a_cancel_trips_at_the_next_effect_and_names_no_step():
+    import threading
+
+    from replay.kernel import BreakerTripped
+
+    flag = threading.Event()
+    breakers = Breakers(BreakerConfig(), cancel=flag)
+    breakers.check_ceilings(3)  # not cancelled: nothing happens
+    flag.set()
+    with pytest.raises(BreakerTripped) as tripped:
+        breakers.check_ceilings(4)
+    assert tripped.value.name == "cancelled"
+    assert not any(ch.isdigit() for ch in str(tripped.value.detail))

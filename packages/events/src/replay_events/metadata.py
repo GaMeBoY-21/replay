@@ -20,6 +20,8 @@ class RunStatus(str, Enum):
     COMPLETED = "completed"
     TRIPPED = "tripped"
     FAILED = "failed"
+    # The process driving it stopped while it was live - found on the next start.
+    INTERRUPTED = "interrupted"
 
 
 class RunMetadata(BaseModel):

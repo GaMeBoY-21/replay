@@ -22,7 +22,44 @@ type State =
   | { name: "running"; ceiling: number }
   | { name: "failed"; message: string };
 
+function ContinuePanel({ runId }: { runId: string }) {
+  const [state, setState] = useState<State>({ name: "idle" });
+  const go = async () => {
+    setState({ name: "running", ceiling: 0 });
+    try {
+      const resumed = await post<{ run_id: string }>(`/api/runs/${encodeURIComponent(runId)}/resume`, {});
+      navigate(`/runs/${encodeURIComponent(resumed.run_id)}`);
+    } catch (error) {
+      setState({ name: "failed", message: error instanceof ApiError ? error.message : String(error) });
+    }
+  };
+  return (
+    <section className="halt" aria-labelledby="halt-title">
+      <h2 id="halt-title">Cancelled</h2>
+      <p>
+        Stopped by the operator before its next step. Everything it recorded up to then is kept, and the refusal is
+        the last thing in its log. No ceiling was hit, so there is none to raise.
+      </p>
+      <LiveOnly action="Continuing">
+        <div className="resume-row">
+          <button type="button" className="button button-primary" onClick={go} disabled={state.name === "running"}>
+            {state.name === "running" ? "Continuing…" : "Continue"}
+          </button>
+          <span className="fineprint">Replays this run to where it stopped, then carries on live.</span>
+        </div>
+        {state.name === "failed" && <p className="state-inline state-inline-error" role="alert">{state.message}</p>}
+      </LiveOnly>
+    </section>
+  );
+}
+
 export function ResumePanel({ runId, summary, metadata }: { runId: string; summary: Summary; metadata: RunMetadata }) {
+  const halted = summary.halted!;
+  if (halted.name === "cancelled") return <ContinuePanel runId={runId} />;
+  return <BreakerHalt runId={runId} summary={summary} metadata={metadata} />;
+}
+
+function BreakerHalt({ runId, summary, metadata }: { runId: string; summary: Summary; metadata: RunMetadata }) {
   const halted = summary.halted!;
   const ceiling = CEILING[halted.name];
   const recorded = Number((metadata.breaker_config as Record<string, unknown> | null)?.[ceiling?.key ?? ""] ?? NaN);

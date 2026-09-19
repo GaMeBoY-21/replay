@@ -77,13 +77,21 @@ def _usage_tokens(usage: Any) -> int:
     return sum(p for p in parts if isinstance(p, int))
 
 
+CANCELLED = "cancelled"
+
+
 class Breakers:
-    def __init__(self, config: BreakerConfig | None = None, now=None) -> None:
+    def __init__(self, config: BreakerConfig | None = None, now=None, cancel=None) -> None:
         self.config = config or BreakerConfig()
         self._counts: dict[str, int] = {}
         self._tokens = 0
         self._now = now
         self._started: float | None = None
+        # An operator's cancel: a threading.Event, or anything with is_set(). It
+        # is checked at the same gate as every ceiling, so a cancel ends the run
+        # the way a breaker does - the refusal appended, the run marked tripped,
+        # everything before it kept - never by abandoning an effect mid-flight.
+        self._cancel = cancel
 
     # ---- counters, advanced identically live and replayed ----
 
@@ -104,6 +112,7 @@ class Breakers:
 
     def check(self, effect: Effect, seq: int) -> None:
         """Live: advance the counters, and refuse if a ceiling is crossed."""
+        self._check_cancelled()
         repeats = self._count(effect)
 
         self._check_depth(seq)
@@ -122,8 +131,14 @@ class Breakers:
         a model call is made - which is the only point a model-side halt can end
         a run cleanly, through BeforeModelCallEvent.cancel, rather than raising
         out of the middle of a stream. Advances no counter."""
+        self._check_cancelled()
         self._check_depth(seq)
         self._check_budget_and_latency()
+
+    def _check_cancelled(self) -> None:
+        if self._cancel is not None and self._cancel.is_set():
+            # Like every breaker message, this names no step.
+            raise BreakerTripped(CANCELLED, "Cancelled by the operator. Suspended.")
 
     def _check_depth(self, seq: int) -> None:
         if seq >= self.config.max_effects:

@@ -7,7 +7,7 @@ import type { ReplayEvent, RunMetadata } from "../types/events";
 
 export type { ReplayEvent, RunMetadata };
 
-export type RunStatus = "running" | "completed" | "failed" | "tripped";
+export type RunStatus = "running" | "completed" | "failed" | "tripped" | "interrupted";
 
 export interface Summary {
   run_id: string;

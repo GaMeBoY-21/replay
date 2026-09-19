@@ -26,6 +26,7 @@ ROUTES: list[tuple[str, re.Pattern, Any]] = [
     ("GET", re.compile(r"^/runs/(?P<id>[^/]+)/events$"), handlers.get_events),
     ("POST", re.compile(r"^/runs/(?P<id>[^/]+)/fork$"), handlers.fork_run),
     ("POST", re.compile(r"^/runs/(?P<id>[^/]+)/resume$"), handlers.resume_run),
+    ("POST", re.compile(r"^/runs/(?P<id>[^/]+)/cancel$"), handlers.cancel_run),
     ("GET", re.compile(r"^/runs/(?P<id>[^/]+)/trace/output$"), handlers.trace_output),
     ("GET", re.compile(r"^/runs/(?P<id>[^/]+)/trace$"), handlers.trace_run),
     ("GET", re.compile(r"^/diff$"), handlers.diff),

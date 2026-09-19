@@ -34,8 +34,12 @@ const STATUS_TEXT: Record<RunStatus, string> = {
   running: "running",
   failed: "failed",
   tripped: "halted by a breaker",
+  interrupted: "interrupted",
 };
 
-export function StatusChip({ status }: { status: RunStatus }) {
+/** `halted` is the breaker that stopped the run, if one did: a cancel is a halt,
+ *  but it reads as what it was. */
+export function StatusChip({ status, halted }: { status: RunStatus; halted?: string | null }) {
+  if (status === "tripped" && halted === "cancelled") return <span className="chip chip-cancelled">cancelled</span>;
   return <span className={`chip chip-${status}`}>{STATUS_TEXT[status] ?? status}</span>;
 }

@@ -19,6 +19,7 @@ from replay_events import BreakerTripped, Result, RunNotFound, canonical, dump_e
 
 from ..agent import runs
 from ..kernel import BreakerConfig, Breakers, diff_runs, flag_output, resolve, step_to_seq, trace_view
+from ..kernel.breakers import CANCELLED
 from ..projector import views as read_models
 from .http import bad_request, conflict, created, not_found, ok, unavailable, body_of, int_param, path_param, query_of
 
@@ -35,7 +36,9 @@ class Runner:
     `launch` decides how a live run is driven. None drives it to the end inside
     the request - one request, one run, which is what a Lambda does. A server
     that can run it in the background passes a function taking the new run's id,
-    the job that drives it, and the fields to echo; it answers the request.
+    the job that drives it, and the fields to echo; it answers the request. The
+    job takes a cancel flag - anything with is_set() - which the breakers check
+    at every effect; `cancel` asks the server to set it for a live run.
     """
 
     factory: Callable[[], Any]
@@ -43,7 +46,8 @@ class Runner:
     breakers: BreakerConfig = field(default_factory=BreakerConfig)
     live: bool = True
     model: str | None = None
-    launch: Callable[[str, Callable[[], Any], dict], dict] | None = field(default=None, repr=False)
+    launch: Callable[[str, Callable[[Any], Any], dict], dict] | None = field(default=None, repr=False)
+    cancel: Callable[[str], dict] | None = field(default=None, repr=False)
 
 
 NOT_LIVE = "This deployment replays recordings and has no model to run the agent with."
@@ -54,11 +58,11 @@ def _not_live(runner: Runner | None):
     return unavailable(NOT_LIVE) if runner is None or not runner.live else None
 
 
-def _launch(runner: Runner, run_id: str, job: Callable[[], Any], echo: dict[str, Any]):
+def _launch(runner: Runner, run_id: str, job: Callable[[Any], Any], echo: dict[str, Any]):
     """Drive a live run: in the request by default, or however the server launches it."""
     if runner.launch is not None:
         return runner.launch(run_id, job, echo)
-    outcome = job()
+    outcome = job(None)  # driven inside the request: nothing can cancel it
     return created({**echo, "run_id": outcome.run_id, "created": True, **_outcome(outcome)})
 
 
@@ -100,8 +104,9 @@ def start_run(event, *, store, runner: Runner, **_):
         return refused
     run_id = run_id or runs.new_run_id()
     prompt = body.get("prompt", runner.prompt)
-    return _launch(runner, run_id, lambda: runs.record(store, runner.factory, prompt, run_id=run_id,
-                                                       breakers=Breakers(runner.breakers)), {"run_id": run_id})
+    return _launch(runner, run_id, lambda cancel: runs.record(store, runner.factory, prompt, run_id=run_id,
+                                                              breakers=Breakers(runner.breakers, cancel=cancel)),
+                   {"run_id": run_id})
 
 
 def list_runs(event, *, views, **_):
@@ -169,37 +174,59 @@ def fork_run(event, *, store, runner: Runner, **_):
     if (refused := _not_live(runner)) is not None:
         return refused
     mutation = Result(value=body["mutation"])
-    return _launch(runner, child, lambda: runs.fork(store, parent, seq, mutation, runner.factory, runner.prompt,
-                                                    run_id=child, breakers=Breakers(runner.breakers)), echo)
+    return _launch(runner, child, lambda cancel: runs.fork(store, parent, seq, mutation, runner.factory,
+                                                           runner.prompt, run_id=child,
+                                                           breakers=Breakers(runner.breakers, cancel=cancel)), echo)
 
 
 def resume_run(event, *, store, runner: Runner, **_):
     """POST /runs/{id}/resume - {breaker_overrides, run_id?}.
 
-    breaker_overrides is required. Without one, the resume replays to the halt
-    and trips the same breaker at the same seq: a loop wearing a fix's clothes.
-    The request is refused before anything is read or run.
+    breaker_overrides is required after a breaker halt. Without one, the resume
+    replays to the halt and trips the same breaker at the same seq: a loop
+    wearing a fix's clothes. A run the operator cancelled hit no ceiling, so it
+    continues without one. Either way nothing runs before the request is checked.
     """
     run_id = path_param(event, "id")
     body = body_of(event)
     overrides = body.get("breaker_overrides")
-    if not isinstance(overrides, dict) or not overrides:
-        return bad_request("breaker_overrides is required: without one the resume re-trips the same breaker")
-    unknown = sorted(set(overrides) - set(BreakerConfig.model_fields))
+    if overrides is not None and not isinstance(overrides, dict):
+        return bad_request("breaker_overrides must be an object")
+    unknown = sorted(set(overrides or {}) - set(BreakerConfig.model_fields))
     if unknown:
         return bad_request(f"unknown breaker settings: {unknown}", known=sorted(BreakerConfig.model_fields))
 
     log = resolve(store, run_id)
-    if not any(isinstance(e, BreakerTripped) for e in log.events):
+    trips = [e for e in log.events if isinstance(e, BreakerTripped)]
+    if not trips:
         return conflict(f"{run_id} did not halt, so there is nothing to resume")
+    cancelled = trips[-1].breaker == CANCELLED
+    if not cancelled and not overrides:
+        return bad_request("breaker_overrides is required: without one the resume re-trips the same breaker")
+    overrides = overrides or {}
     child = body.get("run_id") or f"{run_id}-resume-{_digest(overrides)}"
     echo = {"run_id": child, "parent_run_id": run_id, "breaker_overrides": overrides}
     if _exists(store, child):
         return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})
     if (refused := _not_live(runner)) is not None:
         return refused
-    return _launch(runner, child, lambda: runs.resume(store, run_id, runner.factory, runner.prompt,
-                                                      breaker_overrides=overrides, new_run_id_=child), echo)
+    return _launch(runner, child, lambda cancel: runs.resume(store, run_id, runner.factory, runner.prompt,
+                                                             breaker_overrides=overrides or None,
+                                                             new_run_id_=child, cancel=cancel), echo)
+
+
+def cancel_run(event, *, runner: Runner | None = None, **_):
+    """POST /runs/{id}/cancel - stop a live run at its next effect.
+
+    The run ends the way a breaker halt ends it: the refusal is appended, the run
+    is marked tripped, and everything recorded before it is kept. An effect
+    already in flight finishes and is recorded first - abandoning one mid-way
+    would leave a request with no completion, which is what a crash looks like.
+    """
+    run_id = path_param(event, "id")
+    if runner is None or runner.cancel is None:
+        return conflict("this server drives each run inside its request, so there is no live run to cancel")
+    return runner.cancel(run_id)
 
 
 # ---------------------------------------------------------------- trace and diff

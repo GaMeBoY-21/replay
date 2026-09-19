@@ -34,15 +34,22 @@ ANSWER = "Reconciled. The total is $492.00 in USD."
 
 
 class SlowModel(H.ScriptedModel):
-    """The scripted answers, each after a delay: a live run the browser can watch."""
+    """The scripted answers, each after a delay: a live run the browser can watch.
+
+    When slow, its first response asks for one more tool before the final answer,
+    so a run cancelled during that first call has a next step to stop at."""
 
     def __init__(self, delay: float) -> None:
-        super().__init__([H.text_response(ANSWER) for _ in range(4)])
-        self.delay = delay
+        super().__init__([H.text_response(ANSWER)])
+        self.delay, self.calls = delay, 0
 
     async def stream(self, *args, **kwargs):
         await asyncio.sleep(self.delay)
-        async for chunk in super().stream(*args, **kwargs):
+        self.calls += 1
+        one_more = self.delay and self.calls == 1
+        response = (H.tool_response(H.tool_use("lookup_vendor", {"name": "Meridian Supplies"}, "call_one_more"))
+                    if one_more else H.text_response(ANSWER))
+        for chunk in response:
             yield chunk
 
 

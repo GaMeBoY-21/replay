@@ -130,7 +130,7 @@ def fork(store, parent_run_id: str, at_seq: int, mutation: Result, factory: Agen
 
 def resume(store, run_id: str, factory: AgentFactory, prompt, *,
            breaker_overrides: dict | None = None, new_run_id_: str | None = None,
-           clock=None) -> RunOutcome:
+           clock=None, cancel=None) -> RunOutcome:
     """Replay a halted run to its halt, then continue live. A fork with no mutation.
 
     The ceilings come from the halted run's own metadata. `breaker_overrides`
@@ -153,5 +153,5 @@ def resume(store, run_id: str, factory: AgentFactory, prompt, *,
     metadata = RunMetadata(run_id=resumed_id, parent_run_id=run_id, forked_at_seq=halted_at,
                            eid_base=eid_base, breaker_config=config.model_dump())
     ctx = RunContext(resumed_id, store, ReplayMode(up_to=halted_at - 1), log=log,
-                     breakers=Breakers(config), eid_base=eid_base, **_clock(clock))
+                     breakers=Breakers(config, cancel=cancel), eid_base=eid_base, **_clock(clock))
     return _drive(store, metadata, ctx, factory, prompt)

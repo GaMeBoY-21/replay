@@ -34,17 +34,25 @@ MANIFEST = json.loads((CANONICAL / "manifest.json").read_text())
 READ_BUDGET_S = 2.0
 
 
-class GatedModel(H.ScriptedModel):
-    """Answers only once the gate opens: a model call held mid-flight."""
+ANSWER = H.text_response("Reconciled at $492.00.")
+# A response that asks for one more tool, so the run has a next effect.
+ONE_MORE_TOOL = H.tool_response(H.tool_use("lookup_vendor", {"name": "Meridian Supplies"}, "call_one_more"))
 
-    def __init__(self, gate: threading.Event, entered: threading.Event) -> None:
-        super().__init__([H.text_response("Reconciled at $492.00.") for _ in range(4)])
-        self.gate, self.entered = gate, entered
+
+class GatedModel(H.ScriptedModel):
+    """Answers only once the gate opens: a model call held mid-flight.
+
+    Its first response is `first`; every later one is the final answer."""
+
+    def __init__(self, gate: threading.Event, entered: threading.Event, first=ANSWER) -> None:
+        super().__init__([ANSWER])
+        self.gate, self.entered, self.first, self.calls = gate, entered, first, 0
 
     async def stream(self, *args, **kwargs):
         self.entered.set()
         await asyncio.to_thread(self.gate.wait, 60)
-        async for chunk in super().stream(*args, **kwargs):
+        self.calls += 1
+        for chunk in self.first if self.calls == 1 else ANSWER:
             yield chunk
 
 
@@ -62,13 +70,15 @@ def call(base, method, path, body=None, timeout=10.0):
 @pytest.fixture
 def live(tmp_path):
     gate, entered = threading.Event(), threading.Event()
+    first = {"response": ANSWER}  # a test sets ONE_MORE_TOOL here before it starts a run
     store = open_store(tmp_path / "local.db", CANONICAL)
-    runner = Runner(factory=lambda: build_agent(model=GatedModel(gate, entered)), prompt=TASK,
+    runner = Runner(factory=lambda: build_agent(model=GatedModel(gate, entered, first["response"])), prompt=TASK,
                     breakers=BreakerConfig(max_effects=80), model="gated test double")
     app = LocalApp(store, MemoryViewStore(), runner)
     httpd = serve(app, port=0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:
+        app.first = first
         yield f"http://127.0.0.1:{httpd.server_address[1]}", app, gate, entered
     finally:
         gate.set()
@@ -149,3 +159,106 @@ def test_a_retried_request_for_a_running_run_returns_it_without_starting_another
     assert status == 201 and entered.wait(20)
     status, again = call(base, "POST", f"/api/runs/{wrong}/fork", fork_request())
     assert (status, again["created"], again["run_id"], again["status"]) == (200, False, first["run_id"], "running")
+
+
+# ---------------------------------------------------------------- cancel
+
+
+def own_events(app, run_id):
+    return app.store.read(run_id)
+
+
+def test_cancelling_a_live_run_ends_it_the_way_a_breaker_halt_does(live):
+    base, app, gate, entered = live
+    app.first["response"] = ONE_MORE_TOOL
+    wrong = MANIFEST["wrong"]["run_id"]
+    status, forked = call(base, "POST", f"/api/runs/{wrong}/fork", fork_request())
+    assert status == 201 and entered.wait(20)
+    child = forked["run_id"]
+
+    status, body = call(base, "POST", f"/api/runs/{child}/cancel")
+    assert (status, body["status"]) == (202, "cancelling")
+    gate.set()  # the model call in flight finishes and is recorded; the cancel lands after it
+    assert app.wait_for_live_run(30)
+
+    assert app.store.get_metadata(child).status.value == "tripped"
+    events = own_events(app, child)
+    requested = {e.seq for e in events if e.type == "EffectRequested"}
+    completed = {e.seq for e in events if e.type == "EffectCompleted"}
+    assert requested == completed, "an effect was abandoned mid-way: the crash signature"
+    (trip,) = [e for e in events if e.type == "BreakerTripped"]
+    assert trip.breaker == "cancelled"
+    assert not [e for e in events if e.eid > trip.eid and e.type == "EffectRequested"], "nothing ran after it"
+    assert not any(ch.isdigit() for ch in trip.detail), "a breaker message names no step"
+
+    run = call(base, "GET", f"/api/runs/{child}")[1]
+    assert run["summary"]["halted"]["name"] == "cancelled"
+    written = {w["key"]: w["value"] for s in run["steps"] for w in s["writes"]}
+    assert written["invoice.currency"] == "INR", "everything recorded before the cancel is kept"
+
+
+def test_only_the_live_run_can_be_cancelled(live):
+    base, app, gate, entered = live
+    status, body = call(base, "POST", f"/api/runs/{MANIFEST['wrong']['run_id']}/cancel")
+    assert status == 409 and "not running live" in body["error"]
+
+
+def test_a_cancelled_run_continues_without_raising_any_ceiling(live):
+    base, app, gate, entered = live
+    app.first["response"] = ONE_MORE_TOOL
+    wrong, halted = MANIFEST["wrong"]["run_id"], MANIFEST["halted"]["run_id"]
+    status, forked = call(base, "POST", f"/api/runs/{wrong}/fork", fork_request())
+    assert status == 201 and entered.wait(20)
+    call(base, "POST", f"/api/runs/{forked['run_id']}/cancel")
+    gate.set()
+    assert app.wait_for_live_run(30)
+
+    app.first["response"] = ANSWER
+    status, resumed = call(base, "POST", f"/api/runs/{forked['run_id']}/resume", {})
+    assert status == 201, resumed
+    assert app.wait_for_live_run(30)
+    assert app.store.get_metadata(resumed["run_id"]).status.value == "completed"
+
+    # A real breaker halt still needs a raised ceiling.
+    status, body = call(base, "POST", f"/api/runs/{halted}/resume", {})
+    assert status == 400 and "breaker_overrides is required" in body["error"]
+
+
+# ---------------------------------------------------------------- interrupted by a restart
+
+
+def test_a_run_left_running_by_a_stopped_server_is_marked_interrupted_on_start(tmp_path):
+    from replay.scenario.corpus import load_into
+    from replay_events import RunStatus
+
+    store = open_store(tmp_path / "local.db", CANONICAL)
+    # What a server killed mid-run leaves behind: a log that stops, marked running.
+    crashed = tmp_path / "crashed.json"
+    body = json.loads((CANONICAL / f"{MANIFEST['wrong']['run_id']}.json").read_text())
+    body["metadata"] = {**body["metadata"], "run_id": "crashed", "status": "running"}
+    body["events"] = body["events"][:20]
+    crashed.write_text(json.dumps(body))
+    load_into(store, crashed)
+    before = [e.eid for e in store.read("crashed")]
+
+    app = LocalApp(store, MemoryViewStore(), None)
+    assert app.interrupted == ["crashed"]
+    assert store.get_metadata("crashed").status == RunStatus.INTERRUPTED
+    after = store.read("crashed")
+    assert [e.eid for e in after[:-1]] == before, "the recorded log is kept as it was"
+    assert (after[-1].type, after[-1].status, after[-1].eid) == ("RunEnded", "interrupted", before[-1] + 1)
+
+    # A second start finds nothing to close.
+    assert LocalApp(store, MemoryViewStore(), None).interrupted == []
+
+
+def test_a_run_that_finishes_before_the_cancel_lands_is_completed_not_relabelled(live):
+    """A cancel stops the run at its next effect. If the call in flight was the
+    last one, there is no next effect: the run finished, and says so."""
+    base, app, gate, entered = live
+    status, forked = call(base, "POST", f"/api/runs/{MANIFEST['wrong']['run_id']}/fork", fork_request())
+    assert status == 201 and entered.wait(20)
+    assert call(base, "POST", f"/api/runs/{forked['run_id']}/cancel")[0] == 202
+    gate.set()
+    assert app.wait_for_live_run(30)
+    assert app.store.get_metadata(forked["run_id"]).status.value == "completed"

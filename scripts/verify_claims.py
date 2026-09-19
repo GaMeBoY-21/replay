@@ -681,8 +681,8 @@ CLAIMS: list[Claim] = [
     Claim(
         "resume without breaker_overrides is refused before anything runs",
         f"{ROOT_PKG}/api/handlers.py",
-        "    if not isinstance(overrides, dict) or not overrides:",
-        "    if not isinstance(overrides, dict):",
+        "    if not cancelled and not overrides:",
+        "    if False:",
         ("tests/test_api.py",),
     ),
     Claim(
@@ -692,10 +692,10 @@ CLAIMS: list[Claim] = [
         '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    return _launch(runner, child, lambda: runs.resume(",
+        "    return _launch(runner, child, lambda cancel: runs.resume(",
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    return _launch(runner, child, lambda: runs.resume(",
+        "    return _launch(runner, child, lambda cancel: runs.resume(",
         ("tests/test_api.py",),
     ),
     Claim(
@@ -967,6 +967,41 @@ CLAIMS: list[Claim] = [
         f"{WEB}/views/RunView.tsx",
         "  const tick = usePoll(running, 1500);",
         "  const tick = usePoll(false, 1500);",
+        ("tests/test_web_e2e.py",),
+    ),
+    Claim(
+        "a cancel stops a live run at its next effect, as a breaker halt does",
+        f"{KERNEL}/breakers.py",
+        "        if self._cancel is not None and self._cancel.is_set():",
+        "        if False:",
+        ("tests/test_live_runs.py", "tests/test_breakers.py"),
+    ),
+    Claim(
+        "a cancelled run continues without raising a ceiling",
+        f"{ROOT_PKG}/api/handlers.py",
+        "    if not cancelled and not overrides:",
+        "    if not overrides:",
+        ("tests/test_live_runs.py",),
+    ),
+    Claim(
+        "a run left running by a stopped server is closed as interrupted on start",
+        f"{ROOT_PKG}/local/server.py",
+        "        self.interrupted = end_interrupted_runs(store)",
+        "        self.interrupted = []",
+        ("tests/test_live_runs.py",),
+    ),
+    Claim(
+        "the Cancel button asks the server to cancel the live run",
+        f"{WEB}/components/Running.tsx",
+        "      await post(`/api/runs/${encodeURIComponent(runId)}/cancel`, {});",
+        "      await Promise.resolve();",
+        ("tests/test_web_e2e.py",),
+    ),
+    Claim(
+        "a cancelled run offers Continue, not a ceiling to raise",
+        f"{WEB}/components/ResumePanel.tsx",
+        '  if (halted.name === "cancelled") return <ContinuePanel runId={runId} />;\n',
+        "",
         ("tests/test_web_e2e.py",),
     ),
 ]

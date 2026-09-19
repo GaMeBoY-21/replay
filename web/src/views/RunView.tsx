@@ -109,7 +109,7 @@ export function RunView({ id, step, traced }: { id: string; step: number | null;
       <header className="run-head">
         <div className="run-title-row">
           <h1 id="run-title" className="mono">{id}</h1>
-          <StatusChip status={summary.status} />
+          <StatusChip status={summary.status} halted={summary.halted?.name} />
           {role && <span className="role">{role}</span>}
         </div>
         <p className="run-meta">
@@ -135,7 +135,15 @@ export function RunView({ id, step, traced }: { id: string; step: number | null;
           </div>
         )}
 
-        {summary.status === "running" && <Running since={since} steps={steps.length} />}
+        {summary.status === "running" && <Running runId={id} since={since} steps={steps.length} />}
+        {summary.status === "interrupted" && (
+          <div className="halt-note" role="note">
+            <p>
+              <strong>Interrupted.</strong> The server stopped while this run was live. Everything it recorded up to
+              then is kept; nothing after it ran.
+            </p>
+          </div>
+        )}
 
         {summary.halted && <ResumePanel runId={id} summary={summary} metadata={metadata} />}
 

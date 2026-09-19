@@ -62,7 +62,7 @@ function Head({ resource, id }: { resource: Resource<RunView>; id: string }) {
   return (
     <th scope="col" className="diff-col-head">
       <Link href={`/runs/${id}`} className="mono">{id}</Link>
-      {resource.state === "ready" && <StatusChip status={resource.data.summary.status} />}
+      {resource.state === "ready" && <StatusChip status={resource.data.summary.status} halted={resource.data.summary.halted?.name} />}
       {role && <span className="role">{role}</span>}
     </th>
   );

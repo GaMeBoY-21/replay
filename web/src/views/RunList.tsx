@@ -39,7 +39,7 @@ function Row({ run, child }: { run: Summary; child: boolean }) {
         <Link href={`/runs/${run.run_id}`} className="mono run-link">{run.run_id}</Link>
         {role && <span className="role list-role">{role}</span>}
       </th>
-      <td><StatusChip status={run.status} /></td>
+      <td><StatusChip status={run.status} halted={run.halted?.name} /></td>
       <td className="mono num">{run.step_count}</td>
       <td className="list-answer">
         {run.halted ? (

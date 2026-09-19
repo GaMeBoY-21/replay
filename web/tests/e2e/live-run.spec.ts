@@ -36,3 +36,31 @@ test("a live fork opens at once, shows it is running, and reads keep working mea
   await expect(page.getByRole("status").filter({ hasText: "Running live" })).toHaveCount(0);
   await expect(page.getByText("Reconciled. The total is $492.00 in USD.")).toBeVisible();
 });
+
+test("cancelling a live run stops it cleanly, and a cancelled run continues without a ceiling", async ({ page }) => {
+  // A resume, so this run's id differs from the fork the other test made.
+  await page.goto(`${SLOW}/runs/${manifest.halted.run_id}`);
+  const halt = page.getByRole("region", { name: "Halted by the depth breaker" });
+  await halt.getByLabel("Raise the depth ceiling to").fill("81");
+  await halt.getByRole("button", { name: "Resume" }).click();
+  await expect(page).toHaveURL(new RegExp(`/runs/${manifest.halted.run_id}-resume-`), { timeout: 2_000 });
+
+  await expect(page.getByText("Running live")).toBeVisible();
+  const request = page.waitForRequest((r) => r.method() === "POST" && r.url().endsWith("/cancel"));
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await request;
+  await expect(page.getByText("Cancelling", { exact: true })).toBeVisible();
+
+  // It stops at its next step: marked cancelled, with a Continue and no ceiling to raise.
+  await expect(page.locator(".run-title-row").getByText("cancelled")).toBeVisible({ timeout: 20_000 });
+  const cancelled = page.getByRole("region", { name: "Cancelled" });
+  await expect(cancelled).toContainText("No ceiling was hit, so there is none to raise.");
+  await expect(cancelled.getByLabel(/ceiling/)).toHaveCount(0);
+  await expect(page.locator(".graph-rows").getByText("Cancelled by the operator. Suspended.")).toBeVisible();
+
+  const resumed = page.waitForRequest((r) => r.method() === "POST" && r.url().endsWith("/resume"));
+  await cancelled.getByRole("button", { name: "Continue" }).click();
+  expect((await resumed).postDataJSON()).toEqual({});
+  await expect(page).toHaveURL(/-resume-.*-resume-/, { timeout: 2_000 });
+  await expect(page.locator(".run-title-row").getByText("completed")).toBeVisible({ timeout: 20_000 });
+});

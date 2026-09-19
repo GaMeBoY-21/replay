@@ -98,6 +98,7 @@ main:focus-visible { outline-offset: -2px; }
 .chip-completed { color: var(--ch-ok); }
 .chip-running { color: var(--ch-effect); }
 .chip-failed, .chip-tripped { color: var(--ch-fault); }
+.chip-cancelled, .chip-interrupted { color: var(--mute); }
 
 .kind { font: 500 var(--t1)/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; }
 .kind::before {
@@ -145,7 +146,7 @@ main:focus-visible { outline-offset: -2px; }
 .answer-label { font-size: var(--t1); color: var(--mute); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 
 .running-note {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s3); max-width: 90ch;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3); max-width: 90ch;
   padding: var(--s3) var(--s4); border-radius: var(--r2);
   background: color-mix(in srgb, var(--ch-effect) 8%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--ch-effect) 45%, var(--rule));
