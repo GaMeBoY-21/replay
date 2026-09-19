@@ -20,9 +20,10 @@ from replay.api import Runner
 from replay.kernel import BreakerConfig
 from replay.local.__main__ import open_store
 from replay.local.server import LocalApp, serve
-from replay.scenario import SUBSTITUTED, TASK, load
+from replay.scenario import TASK, load, substitution
 from replay.scenario.live import build_agent
 from replay.store.sqlite import SQLiteLogStore
+from replay.store import MemoryLogStore
 from replay.store.views import MemoryViewStore
 
 pytestmark = pytest.mark.single_backend
@@ -76,8 +77,12 @@ def test_the_canonical_runs_end_to_end_over_http(server):
     assert status == 200
     assert (traced["head"]["key"], traced["head"]["value"]) == ("invoice.currency", "USD")
 
-    at = manifest["fork"]["at_seq"]
-    mutation = {"toolUseId": "replaced", "status": "success", "content": [{"text": json.dumps(SUBSTITUTED)}]}
+    # The same substitution the canonical fork used: the right run's own
+    # recorded response at its decision.
+    scratch = MemoryLogStore()
+    load(scratch, CANONICAL)
+    at, served = substitution(scratch, wrong, manifest["right"]["run_id"])
+    mutation = served.value
     status, forked = call(base, "POST", f"/api/runs/{wrong}/fork", {"at_seq": at, "mutation": mutation})
     assert status == 201 and forked["at_seq"] == at and forked["at_step"] is not None
 

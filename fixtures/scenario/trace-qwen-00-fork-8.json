@@ -1,0 +1,31 @@
+{
+  "chain": [
+    {
+      "eid": 54,
+      "key": "invoice.currency",
+      "step": 10,
+      "value": "INR"
+    },
+    {
+      "eid": 61,
+      "key": "report.total",
+      "step": 11,
+      "value": {
+        "amount": 492.0,
+        "currency": "USD"
+      }
+    }
+  ],
+  "flagged": {
+    "eid": 68,
+    "key": "report.total",
+    "step": 13
+  },
+  "head": {
+    "eid": 54,
+    "key": "invoice.currency",
+    "step": 10,
+    "value": "INR"
+  },
+  "output_step": 14
+}

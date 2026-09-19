@@ -1,9 +1,13 @@
 {
   "fork": {
-    "at_seq": 10,
-    "outcome": "failed",
+    "at_seq": 8,
+    "outcome": "right",
     "parent": "qwen-00",
-    "run_id": "qwen-00-fork-10"
+    "run_id": "qwen-00-fork-8",
+    "substituted_from": {
+      "run_id": "qwen-07",
+      "seq": 8
+    }
   },
   "halt": {
     "attempts": [

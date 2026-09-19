@@ -737,6 +737,20 @@ CLAIMS: list[Claim] = [
         "",
         ("tests/test_local_server.py",),
     ),
+    Claim(
+        "the fork serves the right run's own recorded decision, not the wrong run's",
+        f"{ROOT_PKG}/scenario/canonical.py",
+        "    return seq, Result(value=right.at(decision_seq(right.events)).result.value)",
+        "    return seq, Result(value=resolve(store, wrong_run_id).at(seq).result.value)",
+        ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the fork point is the model call that decided the currency",
+        f"{ROOT_PKG}/scenario/canonical.py",
+        "    return max(e.seq for e in events",
+        "    return min(e.seq for e in events",
+        ("tests/test_scenario.py",),
+    ),
 ]
 
 

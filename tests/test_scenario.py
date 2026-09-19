@@ -17,7 +17,7 @@ import strands_harness as H
 from backends import new_store
 from replay.agent import runs
 from replay.kernel import diff_runs, flag_output, resolve, step_index, trace_view
-from replay.scenario import SUBSTITUTED, TASK, conversion_seq, load
+from replay.scenario import TASK, decision_seq, load, recorded_currency_call, substitution, tool_uses
 from replay.scenario.corpus import load_run, run_files, summarise
 from replay.scenario.live import build_agent, classify
 from replay_events import BreakerTripped, EffectRequested, MemoryWrite
@@ -92,20 +92,49 @@ def test_the_right_and_wrong_runs_were_asked_the_same_thing(canonical):
 # ---------------------------------------------------------------- the fork
 
 
-def test_the_fork_replaces_the_conversion_and_owns_its_log_from_there(canonical):
+def test_the_fork_is_at_the_model_call_that_decided_the_currency(canonical):
     store, manifest = canonical
     fork, parent = manifest["fork"]["run_id"], manifest["wrong"]["run_id"]
     metadata = store.get_metadata(fork)
     assert metadata.parent_run_id == parent
-    assert metadata.forked_at_seq == conversion_seq(resolve(store, parent).events) == manifest["fork"]["at_seq"]
+    assert metadata.forked_at_seq == decision_seq(resolve(store, parent).events) == manifest["fork"]["at_seq"]
+    decision = resolve(store, parent).at(metadata.forked_at_seq)
+    assert decision.requested.effect.effect_kind == "model"
+    assert recorded_currency_call(decision.result.value)["value"] == "USD"
 
+
+def test_the_substituted_decision_is_the_right_runs_own_recorded_response(canonical):
+    """Nothing at the fork point is written by hand: the served response is the
+    right run's response at its own decision, byte for byte."""
+    store, manifest = canonical
+    fork, right = manifest["fork"]["run_id"], manifest["right"]["run_id"]
     own = store.read(fork)
-    assert own[0].type == "EffectRequested" and own[0].seq == metadata.forked_at_seq
-    assert own[0].effect.name == "convert_invoice_total"
-    assert own[1].substituted and json.loads(own[1].result.value["content"][0]["text"]) == SUBSTITUTED
+    assert own[0].type == "EffectRequested" and own[0].seq == manifest["fork"]["at_seq"]
+    assert own[1].substituted
+
+    recorded = resolve(store, right).at(decision_seq(resolve(store, right).events)).result
+    assert own[1].result == recorded
+    assert substitution(store, manifest["wrong"]["run_id"], right) == (manifest["fork"]["at_seq"], recorded)
+    assert manifest["fork"]["substituted_from"] == {"run_id": right, "seq": decision_seq(resolve(store, right).events)}
+    assert recorded_currency_call(recorded.value)["value"] == "INR"
 
 
-def test_the_diff_shares_the_prefix_up_to_the_conversion(canonical):
+def test_after_the_decision_the_tools_ran_live_and_the_worksheet_recovered(canonical):
+    """The substituted response only asked for tools; the tools themselves ran in
+    the fork, so their writes are the fork's own - not served from any log."""
+    store, manifest = canonical
+    fork = manifest["fork"]["run_id"]
+    own = store.read(fork)
+    live_tools = [e.effect.name for e in own[2:] if isinstance(e, EffectRequested) and e.effect.effect_kind == "tool"]
+    assert live_tools[:2] == [t["name"] for t in tool_uses(own[1].result.value)]
+    written = {e.key: e.value for e in own if isinstance(e, MemoryWrite)}
+    assert written["invoice.currency"] == "INR"
+    assert written["report.total"] == {"amount": 492.0, "currency": "USD"}
+    assert written["report.submitted"]["total"] == {"amount": 492.0, "currency": "USD"}
+    assert outcome(store, fork)["outcome"] == "right"
+
+
+def test_the_diff_shares_the_prefix_up_to_the_decision(canonical):
     store, manifest = canonical
     diff = diff_runs(store, manifest["wrong"]["run_id"], manifest["fork"]["run_id"])
     assert (diff["shared_by"], diff["shared_prefix"]) == ("storage", manifest["fork"]["at_seq"])
