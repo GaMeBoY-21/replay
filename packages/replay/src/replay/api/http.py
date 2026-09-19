@@ -32,6 +32,10 @@ def conflict(message: str) -> dict[str, Any]:
     return response(409, {"error": message})
 
 
+def unavailable(message: str) -> dict[str, Any]:
+    return response(503, {"error": message})
+
+
 def body_of(event: dict[str, Any]) -> dict[str, Any]:
     """The JSON body, or {}. A body that is not a JSON object is a client error."""
     raw = event.get("body")

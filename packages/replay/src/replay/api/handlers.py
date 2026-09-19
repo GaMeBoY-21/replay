@@ -20,16 +20,38 @@ from replay_events import BreakerTripped, Result, RunNotFound, canonical, dump_e
 from ..agent import runs
 from ..kernel import BreakerConfig, Breakers, diff_runs, flag_output, resolve, step_to_seq, trace_view
 from ..projector import views as read_models
-from .http import bad_request, conflict, created, not_found, ok, body_of, int_param, path_param, query_of
+from .http import bad_request, conflict, created, not_found, ok, unavailable, body_of, int_param, path_param, query_of
 
 
 @dataclass
 class Runner:
-    """What the run-driving routes need: an agent factory and the task."""
+    """What the run-driving routes need: an agent factory and the task.
+
+    `live` says whether this deployment can run the agent at all. One with no
+    model - replaying recordings only - sets it False, and the run-driving routes
+    refuse with 503 rather than failing inside the agent. `model` names the model
+    the factory uses, for GET /capabilities.
+    """
 
     factory: Callable[[], Any]
     prompt: str
     breakers: BreakerConfig = field(default_factory=BreakerConfig)
+    live: bool = True
+    model: str | None = None
+
+
+NOT_LIVE = "This deployment replays recordings and has no model to run the agent with."
+
+
+def _not_live(runner: Runner | None):
+    """A 503 if this deployment cannot run the agent, else None."""
+    return unavailable(NOT_LIVE) if runner is None or not runner.live else None
+
+
+def capabilities(event, *, runner: Runner | None = None, **_):
+    """GET /capabilities - whether starting, forking and resuming can run live here."""
+    live = runner is not None and runner.live
+    return ok({"live": live, "model": runner.model if live else None, "reason": None if live else NOT_LIVE})
 
 
 def _digest(value: Any) -> str:
@@ -60,6 +82,8 @@ def start_run(event, *, store, runner: Runner, **_):
     if run_id is not None and _exists(store, run_id):
         return ok({"run_id": run_id, "created": False, **read_models.summary(resolve(store, run_id).events,
                                                                             store.get_metadata(run_id))})
+    if (refused := _not_live(runner)) is not None:
+        return refused
     outcome = runs.record(store, runner.factory, body.get("prompt", runner.prompt), run_id=run_id,
                           breakers=Breakers(runner.breakers))
     return created({"run_id": outcome.run_id, "created": True, **_outcome(outcome)})
@@ -127,6 +151,8 @@ def fork_run(event, *, store, runner: Runner, **_):
     echo = {"run_id": child, "parent_run_id": parent, "at_seq": seq, "at_step": step}
     if _exists(store, child):
         return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})
+    if (refused := _not_live(runner)) is not None:
+        return refused
     outcome = runs.fork(store, parent, seq, Result(value=body["mutation"]), runner.factory, runner.prompt,
                         run_id=child, breakers=Breakers(runner.breakers))
     return created({**echo, "created": True, **_outcome(outcome)})
@@ -155,6 +181,8 @@ def resume_run(event, *, store, runner: Runner, **_):
     echo = {"run_id": child, "parent_run_id": run_id, "breaker_overrides": overrides}
     if _exists(store, child):
         return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})
+    if (refused := _not_live(runner)) is not None:
+        return refused
     outcome = runs.resume(store, run_id, runner.factory, runner.prompt, breaker_overrides=overrides,
                           new_run_id_=child)
     return created({**echo, "created": True, **_outcome(outcome)})

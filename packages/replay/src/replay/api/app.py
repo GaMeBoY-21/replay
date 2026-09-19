@@ -29,6 +29,7 @@ ROUTES: list[tuple[str, re.Pattern, Any]] = [
     ("GET", re.compile(r"^/runs/(?P<id>[^/]+)/trace/output$"), handlers.trace_output),
     ("GET", re.compile(r"^/runs/(?P<id>[^/]+)/trace$"), handlers.trace_run),
     ("GET", re.compile(r"^/diff$"), handlers.diff),
+    ("GET", re.compile(r"^/capabilities$"), handlers.capabilities),
 ]
 
 

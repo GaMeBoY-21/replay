@@ -17,7 +17,7 @@ from ..api import Runner
 from ..kernel import BreakerConfig
 from ..scenario.canonical import load
 from ..scenario.data import TASK
-from ..scenario.live import build_agent
+from ..scenario.live import OLLAMA_MODEL, build_agent
 from ..store.sqlite import SQLiteLogStore
 from ..store.views import MemoryViewStore
 from .server import LocalApp, serve
@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.db, args.seed)
 
-    runner = Runner(factory=build_agent, prompt=TASK, breakers=BreakerConfig(max_effects=80))
+    runner = Runner(factory=build_agent, prompt=TASK, breakers=BreakerConfig(max_effects=80), model=OLLAMA_MODEL)
     app = LocalApp(store, MemoryViewStore(), runner, static_dir=args.static)
     server = serve(app, args.host, args.port)
     print(f"serving {len(store.list_runs())} runs from {args.db} on http://{args.host}:{args.port}  (API under /api)")

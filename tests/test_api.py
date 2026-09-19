@@ -234,3 +234,44 @@ def test_no_route_handles_the_prefix_itself():
 def test_unknown_routes_and_methods_are_404(api):
     assert api("GET", "/nowhere")[0] == 404
     assert api("DELETE", "/runs/run-1")[0] == 404
+
+
+# ---------------------------------------------------------------- a deployment with no model
+
+
+def test_capabilities_say_whether_the_agent_can_run_live(api):
+    status, body = api("GET", "/capabilities")
+    assert (status, body["live"], body["reason"]) == (200, True, None)
+    named = API(Runner(factory=H.build_agent, prompt=H.PROMPT, model="qwen2.5:14b"))
+    assert named("GET", "/capabilities")[1]["model"] == "qwen2.5:14b"
+
+
+def test_a_deployment_with_no_model_says_so_and_refuses_to_run_anything(halted):
+    """Replaying recordings needs no model; running the agent does. Without one,
+    start, fork and resume are refused with the reason - before anything is
+    written - instead of failing inside the agent."""
+    recordings_only = API(Runner(factory=H.build_agent, prompt=H.PROMPT, live=False))
+    recordings_only.store, recordings_only.views = halted.store, halted.views
+    before = {m.run_id for m in halted.store.list_runs()}
+
+    status, body = recordings_only("GET", "/capabilities")
+    assert (status, body["live"], body["model"]) == (200, False, None)
+    assert "replays recordings" in body["reason"]
+
+    mutation = {"toolUseId": "t", "status": "success", "content": [{"text": "{}"}]}
+    for method, path, payload in [
+        ("POST", "/runs", {"run_id": "new"}),
+        ("POST", "/runs/halted/fork", {"at_step": 1, "mutation": mutation}),
+        ("POST", "/runs/halted/resume", {"breaker_overrides": {"max_repeats": 10**6}}),
+    ]:
+        status, body = recordings_only(method, path, body=payload)
+        assert status == 503 and "replays recordings" in body["error"], path
+
+    assert {m.run_id for m in halted.store.list_runs()} == before
+    assert recordings_only("GET", "/runs/halted")[0] == 200, "reading still works"
+
+
+def test_with_no_runner_at_all_nothing_claims_to_be_live():
+    client = API()
+    client.runner = None
+    assert client("GET", "/capabilities")[1]["live"] is False
