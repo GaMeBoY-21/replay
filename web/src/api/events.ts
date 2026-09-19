@@ -109,3 +109,12 @@ export function inline(value: unknown, max = 80): string {
   const text = typeof value === "string" ? JSON.stringify(value) : JSON.stringify(value) ?? String(value);
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
+
+/** A requested tool call on one line: the recording tool as `field = value`, others by name. */
+export function callLine(call: ToolCall): string {
+  const input = call.input as Record<string, unknown>;
+  if (call.name === "record_invoice_field" && typeof input.field === "string") {
+    return `${call.name} ${input.field} = ${inline(input.value, 32)}`;
+  }
+  return call.name;
+}

@@ -295,6 +295,43 @@ main:focus-visible { outline-offset: -2px; }
   padding: var(--s2) 0 var(--s2) var(--s4); border-left: 3px solid var(--signal);
 }
 
+/* ---------------------------------------------------------------- diff */
+
+.diff { display: grid; gap: var(--s4); }
+.diff-summary { max-width: 90ch; }
+.diff-scroll { overflow-x: auto; }
+.diff-table {
+  width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: var(--r2);
+}
+.diff-table th, .diff-table td { padding: var(--s2) var(--s3); text-align: left; vertical-align: top; }
+.diff-table thead th { border-bottom: 1px solid var(--rule); font-weight: 500; }
+.diff-col-head { display: table-cell; }
+.diff-col-head > * + * { margin-left: var(--s2); }
+.diff-gutter {
+  width: 88px; text-align: right !important; color: var(--faint);
+  font: 400 var(--t2)/1.6 var(--mono); font-variant-numeric: tabular-nums;
+  border-right: 1px solid var(--rule);
+}
+.diff-cell { display: grid; gap: 2px; min-width: 0; }
+.diff-asked { font-size: var(--t2); color: var(--mute); }
+.diff-step { font-size: var(--t1); color: var(--mute); }
+
+/* The shared prefix: one continuous band across both runs. */
+.diff-shared td {
+  background: color-mix(in srgb, var(--ch-model) 12%, var(--panel));
+  border-left: 3px solid color-mix(in srgb, var(--ch-model) 55%, var(--rule));
+}
+.diff-shared tr:first-child td { border-top-right-radius: var(--r2); }
+.diff-shared-label td { font: 500 var(--t1)/1 var(--sans); color: var(--mute); text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: var(--s3); }
+.diff-shared-label td:first-child { background: none; border-left: 0; }
+
+.diff-own td { border-top: 1px solid var(--rule); }
+.diff-own td + td { border-left: 1px solid var(--rule); }
+.diff-diverges td { background: color-mix(in srgb, var(--ink) 5%, var(--panel)); border-top: 2px solid var(--ink); }
+.diff-marker { display: block; font: 600 var(--t1)/1.4 var(--sans); color: var(--ink); text-transform: uppercase; letter-spacing: 0.06em; }
+.diff-table tfoot td, .diff-table tfoot th { border-top: 1px solid var(--rule); }
+
 /* ---------------------------------------------------------------- 720p projector */
 
 @media (max-width: 1100px) {

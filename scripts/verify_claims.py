@@ -801,6 +801,20 @@ CLAIMS: list[Claim] = [
         "It was wrong from step {t.chain[t.chain.length - 1].step}.",
         ("tests/test_web.py",),
     ),
+    Claim(
+        "the diff draws a shared prefix once, spanning both runs",
+        f"{WEB}/views/DiffView.tsx",
+        "                  <td colSpan={2}>\n                    <Cell step={stepAt(A, row.seq)}",
+        "                  <td>\n                    <Cell step={stepAt(A, row.seq)}",
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "the diff says when steps are shared by storage rather than by content",
+        f"{WEB}/views/DiffView.tsx",
+        '          {d.shared_by === "storage" ? (',
+        "          {false ? (",
+        ("tests/test_web.py",),
+    ),
 ]
 
 
