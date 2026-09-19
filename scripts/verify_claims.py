@@ -692,10 +692,10 @@ CLAIMS: list[Claim] = [
         '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    return _launch(runner, child, lambda cancel: runs.resume(",
+        "    return _launch(runner, child, lambda cancel: _runs().resume(",
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    return _launch(runner, child, lambda cancel: runs.resume(",
+        "    return _launch(runner, child, lambda cancel: _runs().resume(",
         ("tests/test_api.py",),
     ),
     Claim(
@@ -1038,6 +1038,27 @@ CLAIMS: list[Claim] = [
         "group((r) => !demo.has(r.run_id) && inCorpus.has(r.run_id))",
         "group(() => false)",
         ("tests/test_web.py",),
+    ),
+    Claim(
+        "the deployed api never imports Strands: the live driver loads only when a run is driven",
+        f"{ROOT_PKG}/api/handlers.py",
+        "from ..ids import new_run_id\n",
+        "from ..ids import new_run_id\nfrom ..agent import runs as _eager_runs  # noqa: F401\n",
+        ("tests/test_aws_entry.py",),
+    ),
+    Claim(
+        "the deployed stores are built in the Lambda's region, not the default one",
+        f"{ROOT_PKG}/aws/resources.py",
+        '    return DynamoViewStore(os.environ["VIEWS_TABLE"], region_name=region())',
+        '    return DynamoViewStore(os.environ["VIEWS_TABLE"])',
+        ("tests/test_aws_entry.py",),
+    ),
+    Claim(
+        "the deployment replays recordings only and says so",
+        f"{ROOT_PKG}/aws/api.py",
+        'RUNNER = Runner(factory=_no_agent, prompt="", live=False, model=None)',
+        'RUNNER = Runner(factory=_no_agent, prompt="", live=True, model=None)',
+        ("tests/test_aws_entry.py",),
     ),
 ]
 

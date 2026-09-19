@@ -33,3 +33,5 @@ replay.*.payloads/
 # Generated from packages/events — the single schema source. Never edit by hand.
 web/src/types/events.d.ts
 packages/events/schema.json
+# Lambda bundles, requirement lists and other build scratch.
+.scratch/

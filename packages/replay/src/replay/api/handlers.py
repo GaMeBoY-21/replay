@@ -17,7 +17,7 @@ from typing import Any, Callable
 
 from replay_events import BreakerTripped, Result, RunNotFound, canonical, dump_event
 
-from ..agent import runs
+from ..ids import new_run_id
 from ..kernel import BreakerConfig, Breakers, diff_runs, flag_output, resolve, step_to_seq, trace_view
 from ..kernel.breakers import CANCELLED
 from ..projector import views as read_models
@@ -56,6 +56,15 @@ NOT_LIVE = "This deployment replays recordings and has no model to run the agent
 def _not_live(runner: Runner | None):
     """A 503 if this deployment cannot run the agent, else None."""
     return unavailable(NOT_LIVE) if runner is None or not runner.live else None
+
+
+def _runs():
+    """The live driver, imported only when a run is actually driven. It pulls in
+    Strands and the agent seams; a replay-only deployment never gets this far -
+    every route that drives a run is refused first - so it never loads them."""
+    from ..agent import runs
+
+    return runs
 
 
 def _launch(runner: Runner, run_id: str, job: Callable[[Any], Any], echo: dict[str, Any]):
@@ -102,9 +111,9 @@ def start_run(event, *, store, runner: Runner, **_):
                                                                             store.get_metadata(run_id))})
     if (refused := _not_live(runner)) is not None:
         return refused
-    run_id = run_id or runs.new_run_id()
+    run_id = run_id or new_run_id()
     prompt = body.get("prompt", runner.prompt)
-    return _launch(runner, run_id, lambda cancel: runs.record(store, runner.factory, prompt, run_id=run_id,
+    return _launch(runner, run_id, lambda cancel: _runs().record(store, runner.factory, prompt, run_id=run_id,
                                                               breakers=Breakers(runner.breakers, cancel=cancel)),
                    {"run_id": run_id})
 
@@ -174,7 +183,7 @@ def fork_run(event, *, store, runner: Runner, **_):
     if (refused := _not_live(runner)) is not None:
         return refused
     mutation = Result(value=body["mutation"])
-    return _launch(runner, child, lambda cancel: runs.fork(store, parent, seq, mutation, runner.factory,
+    return _launch(runner, child, lambda cancel: _runs().fork(store, parent, seq, mutation, runner.factory,
                                                            runner.prompt, run_id=child,
                                                            breakers=Breakers(runner.breakers, cancel=cancel)), echo)
 
@@ -210,7 +219,7 @@ def resume_run(event, *, store, runner: Runner, **_):
         return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})
     if (refused := _not_live(runner)) is not None:
         return refused
-    return _launch(runner, child, lambda cancel: runs.resume(store, run_id, runner.factory, runner.prompt,
+    return _launch(runner, child, lambda cancel: _runs().resume(store, run_id, runner.factory, runner.prompt,
                                                              breaker_overrides=overrides or None,
                                                              new_run_id_=child, cancel=cancel), echo)
 
