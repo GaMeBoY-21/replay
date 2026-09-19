@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { effects } from "../api/events";
 import { manifest } from "../api/source";
-import type { ReplayEvent, RunView as RunViewData } from "../api/types";
+import type { ReplayEvent, RunView as RunViewData, Trace } from "../api/types";
 import { useResource } from "../api/useResource";
 import { Answer } from "../components/Answer";
 import { RunGraph } from "../components/RunGraph";
+import { TracePanel } from "../components/TracePanel";
 import { Failure, Loading, StatusChip } from "../components/States";
 import { StepDetail, type Provenance } from "../components/StepDetail";
 import { Link, navigate } from "../router";
@@ -30,8 +31,9 @@ export function provenanceOf(run: RunViewData): Provenance | null {
   return { parent, fromRun: null, fromStep: null };
 }
 
-export function RunView({ id, step }: { id: string; step: number | null }) {
+export function RunView({ id, step, traced }: { id: string; step: number | null; traced: boolean }) {
   const run = useResource<RunViewData>(`/api/runs/${encodeURIComponent(id)}`);
+  const trace = useResource<Trace>(traced ? `/api/runs/${encodeURIComponent(id)}/trace/output` : null);
   const log = useResource<{ events: ReplayEvent[] }>(`/api/runs/${encodeURIComponent(id)}/events?limit=1000`);
   const byseq = useMemo(() => (log.state === "ready" ? effects(log.data.events) : null), [log]);
   const asked = useMemo(() => {
@@ -57,7 +59,8 @@ export function RunView({ id, step }: { id: string; step: number | null }) {
 
   const data = run.data;
   const { summary, steps, metadata } = data;
-  const selected = step ?? steps[0]?.step ?? null;
+  const drawnHead = traced && trace.state === "ready" ? trace.data.head.step : null;
+  const selected = step ?? drawnHead ?? steps[0]?.step ?? null;
   const current = steps.find((s) => s.step === selected) ?? steps[0];
   const writer = new Map(steps.flatMap((s) => s.writes.map((w) => [w.eid, s.step] as const)));
   const provenance = provenanceOf(data);
@@ -69,7 +72,16 @@ export function RunView({ id, step }: { id: string; step: number | null }) {
     ? null
     : Math.max(0, ...steps.filter((s) => s.seq !== null && s.seq < forkedAt).map((s) => s.step));
   const substitutedNote = provenance?.fromRun ? `response from ${provenance.fromRun}` : null;
-  const select = (n: number) => navigate(`/runs/${encodeURIComponent(id)}?step=${n}`, true);
+  const here = (params: { step?: number | null; trace?: boolean }) => {
+    const query = new URLSearchParams();
+    const n = params.step === undefined ? step : params.step;
+    if (n) query.set("step", String(n));
+    if (params.trace ?? traced) query.set("trace", "output");
+    const q = query.toString();
+    return `/runs/${encodeURIComponent(id)}${q ? `?${q}` : ""}`;
+  };
+  const select = (n: number) => navigate(here({ step: n }), true);
+  const drawn = traced && trace.state === "ready" ? trace.data : null;
   const role = roleOf(id);
 
   return (
@@ -135,9 +147,21 @@ export function RunView({ id, step }: { id: string; step: number | null }) {
             shared={provenance && sharedThrough ? { throughStep: sharedThrough, parent: provenance.parent } : null}
             substitutedNote={substitutedNote}
             asked={asked}
+            trace={drawn}
           />
         </section>
         <aside className="run-detail">
+          <TracePanel
+            runId={id}
+            traced={traced}
+            trace={trace}
+            onDraw={() => {
+              const head = trace.state === "ready" ? trace.data.head.step : null;
+              navigate(here({ trace: true, step: head }), true);
+            }}
+            onClear={() => navigate(here({ trace: false }), true)}
+            onSelect={select}
+          />
           {current ? (
             <StepDetail
               key={current.step}

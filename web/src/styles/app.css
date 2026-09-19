@@ -254,6 +254,47 @@ main:focus-visible { outline-offset: -2px; }
 .memory-op { display: inline-block; min-width: 44px; color: var(--mute); font-size: var(--t1); text-transform: uppercase; letter-spacing: 0.06em; }
 .memory-write .value { color: var(--ch-memory); word-break: break-word; }
 
+/* ---------------------------------------------------------------- buttons */
+
+.button {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  padding: var(--s2) var(--s4); border-radius: var(--r2); cursor: pointer;
+  font: 600 var(--t3)/1.2 var(--sans); color: var(--ink);
+  background: var(--raise); border: 1px solid var(--rule);
+}
+.button:hover { border-color: var(--mute); }
+.button-primary { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.button-primary:hover { background: color-mix(in srgb, var(--ink) 88%, var(--ground)); }
+.button:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ---------------------------------------------------------------- trace */
+
+.trace { display: grid; gap: var(--s3); }
+.trace-idle { padding: var(--s4); border: 1px solid var(--rule); border-radius: var(--r2); background: var(--panel); justify-items: start; }
+.trace-drawn {
+  padding: var(--s4); border-radius: var(--r2); background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--ch-trace) 45%, var(--rule));
+}
+.trace-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); }
+.chain { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s1); }
+.chain-link {
+  all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s3);
+  padding: var(--s1) var(--s2); border-radius: var(--r1);
+  border-left: 2px solid var(--ch-trace);
+}
+.chain-link:hover { background: color-mix(in srgb, var(--ch-trace) 10%, transparent); }
+.chain-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.chain-origin .chain-link { border-left-color: var(--signal); }
+.chain-step { font: 500 var(--t2)/1.4 var(--mono); color: var(--mute); min-width: 7ch; }
+.chain-what { font-size: var(--t2); color: var(--ink); }
+
+/* The last thing a judge reads. DESIGN.md: --t4/500 sans on a --signal left rule. */
+.closer {
+  font: 500 var(--t4)/1.4 var(--sans); color: var(--ink);
+  padding: var(--s2) 0 var(--s2) var(--s4); border-left: 3px solid var(--signal);
+}
+
 /* ---------------------------------------------------------------- 720p projector */
 
 @media (max-width: 1100px) {

@@ -7,7 +7,7 @@ import { RunView } from "./views/RunView";
 function Page({ route }: { route: Route }) {
   switch (route.name) {
     case "run":
-      return <RunView id={route.id} step={route.step} />;
+      return <RunView id={route.id} step={route.step} traced={route.traced} />;
     case "runs":
     case "diff":
     case "corpus":

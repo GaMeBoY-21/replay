@@ -11,11 +11,26 @@
 // list above it, so the graph is keyboard-operable and each row is labelled.
 
 import { scaleBand } from "d3-scale";
-import { useMemo, useRef, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { inline } from "../api/events";
 import type { Step, Trace } from "../api/types";
 
 export const ROW = 52;
+/** Short screens - a 720p projector - get tighter rows, so the trace fits. */
+const COMPACT_ROW = 42;
+const COMPACT = "(max-height: 800px)";
+
+function useRowHeight(): number {
+  const query = typeof matchMedia === "function" ? matchMedia(COMPACT) : null;
+  const [compact, setCompact] = useState(query?.matches ?? false);
+  useEffect(() => {
+    if (!query) return;
+    const update = () => setCompact(query.matches);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, [query?.media]);
+  return compact ? COMPACT_ROW : ROW;
+}
 const GUTTER = 56;
 const LANE = { model: GUTTER + 40, tool: GUTTER + 72, breaker: GUTTER + 72 } as const;
 export const LABEL_X = GUTTER + 100;
@@ -65,12 +80,13 @@ function stepLabel(step: Step, role: string | null, note: string | null, asked: 
 
 export function RunGraph({ runId, steps, selected, onSelect, trace, shared, substitutedNote, asked }: RunGraphProps) {
   const list = useRef<HTMLOListElement>(null);
-  const height = steps.length * ROW;
+  const row = useRowHeight();
+  const height = steps.length * row;
   const y = useMemo(
     () => scaleBand<number>().domain(steps.map((s) => s.step)).range([0, height]).paddingInner(0),
     [steps, height],
   );
-  const cy = (step: number) => (y(step) ?? 0) + ROW / 2;
+  const cy = (step: number) => (y(step) ?? 0) + row / 2;
   const lane = (step: Step) => LANE[step.kind];
   const byStep = new Map(steps.map((s) => [s.step, s]));
 
@@ -78,7 +94,15 @@ export function RunGraph({ runId, steps, selected, onSelect, trace, shared, subs
   const onPath = new Set(path);
   const origin = trace?.head.step ?? null;
   const output = trace?.output_step ?? null;
-  const sharedEnd = shared ? (y(shared.throughStep) ?? 0) + ROW : 0;
+  const sharedEnd = shared ? (y(shared.throughStep) ?? 0) + row : 0;
+
+  // When a trace is drawn, bring its origin into view. A jump, not a scroll
+  // animation: the origin ring is the interface's one animation.
+  useEffect(() => {
+    if (origin === null) return;
+    const index = steps.findIndex((s) => s.step === origin);
+    list.current?.querySelectorAll("li")[index]?.scrollIntoView?.({ block: "center" });
+  }, [origin, steps]);
 
   const role = (step: number): string | null => {
     if (step === origin) return "origin of the trace";
@@ -155,7 +179,7 @@ export function RunGraph({ runId, steps, selected, onSelect, trace, shared, subs
             const r = role(s.step);
             const shared_ = shared && s.step <= shared.throughStep;
             return (
-              <li key={s.step} className="graph-row" style={{ height: ROW }}>
+              <li key={s.step} className="graph-row" style={{ height: row }}>
                 <button
                   type="button"
                   className={`row-button${s.step === selected ? " is-selected" : ""}${onPath.has(s.step) ? " is-traced" : ""}${s.step === origin ? " is-origin" : ""}`}

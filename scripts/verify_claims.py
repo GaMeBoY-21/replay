@@ -780,6 +780,27 @@ CLAIMS: list[Claim] = [
         'aria-label={`Steps of ${runId}`}',
         ("tests/test_web.py",),
     ),
+    Claim(
+        "the trace origin alone takes the signal colour",
+        f"{WEB}/components/RunGraph.tsx",
+        '              s.step === origin ? "node-origin" : "",',
+        '              onPath.has(s.step) ? "node-origin" : "",',
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "the trace shows the whole chain, not only its head",
+        f"{WEB}/components/TracePanel.tsx",
+        "    ...t.chain.map((link) =>",
+        "    ...t.chain.slice(0, 1).map((link) =>",
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "the closing line names the step the trace found",
+        f"{WEB}/components/TracePanel.tsx",
+        "It was wrong from step {head.step}.",
+        "It was wrong from step {t.chain[t.chain.length - 1].step}.",
+        ("tests/test_web.py",),
+    ),
 ]
 
 

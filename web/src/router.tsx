@@ -5,7 +5,7 @@ import { useEffect, useState, type AnchorHTMLAttributes, type MouseEvent } from 
 
 export type Route =
   | { name: "runs" }
-  | { name: "run"; id: string; step: number | null }
+  | { name: "run"; id: string; step: number | null; traced: boolean }
   | { name: "diff"; a: string; b: string }
   | { name: "corpus" }
   | { name: "missing"; path: string };
@@ -16,7 +16,12 @@ export function parse(pathname: string, search: string): Route {
   const run = pathname.match(/^\/runs\/([^/]+)$/);
   if (run) {
     const step = Number(query.get("step"));
-    return { name: "run", id: decodeURIComponent(run[1]), step: Number.isInteger(step) && step > 0 ? step : null };
+    return {
+      name: "run",
+      id: decodeURIComponent(run[1]),
+      step: Number.isInteger(step) && step > 0 ? step : null,
+      traced: query.get("trace") === "output",
+    };
   }
   if (pathname === "/diff" && query.get("a") && query.get("b")) {
     return { name: "diff", a: query.get("a")!, b: query.get("b")! };
