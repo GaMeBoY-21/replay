@@ -665,10 +665,10 @@ CLAIMS: list[Claim] = [
         '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    outcome = runs.fork(",
+        "    mutation = Result(value=body[\"mutation\"])",
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    outcome = runs.fork(",
+        "    mutation = Result(value=body[\"mutation\"])",
         ("tests/test_api.py",),
     ),
     Claim(
@@ -692,10 +692,10 @@ CLAIMS: list[Claim] = [
         '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    outcome = runs.resume(",
+        "    return _launch(runner, child, lambda: runs.resume(",
         "    if (refused := _not_live(runner)) is not None:\n"
         "        return refused\n"
-        "    outcome = runs.resume(",
+        "    return _launch(runner, child, lambda: runs.resume(",
         ("tests/test_api.py",),
     ),
     Claim(
@@ -928,6 +928,46 @@ CLAIMS: list[Claim] = [
         "                  live=not replay_only, model=None if replay_only else OLLAMA_MODEL)",
         "                  live=True, model=None if replay_only else OLLAMA_MODEL)",
         ("tests/test_local_server.py",),
+    ),
+    Claim(
+        "a read never waits behind a live run",
+        f"{ROOT_PKG}/local/server.py",
+        "    def api(self, method: str, path: str, query: dict[str, str], body: str | None) -> dict[str, Any]:\n"
+        "        result = dispatch(",
+        "    def api(self, method: str, path: str, query: dict[str, str], body: str | None) -> dict[str, Any]:\n"
+        "        with self._live:\n"
+        "            pass\n"
+        "        result = dispatch(",
+        ("tests/test_live_runs.py",),
+    ),
+    Claim(
+        "a live request answers at once, with the run still going",
+        f"{ROOT_PKG}/local/server.py",
+        "        self._live_thread.start()\n",
+        "        self._live_thread.start()\n        self._live_thread.join()\n",
+        ("tests/test_live_runs.py",),
+    ),
+    Claim(
+        "one live run at a time, and a second is refused rather than queued",
+        f"{ROOT_PKG}/local/server.py",
+        "        if not self._live.acquire(blocking=False):",
+        "        if not self._live.acquire(blocking=True):",
+        ("tests/test_live_runs.py",),
+    ),
+    Claim(
+        "a live run is re-projected when it ends",
+        f"{ROOT_PKG}/local/server.py",
+        "                    if self._exists(run_id):\n"
+        "                        project_run(self.store, self.views, run_id)",
+        "                    pass",
+        ("tests/test_live_runs.py",),
+    ),
+    Claim(
+        "the UI polls a running run until it ends",
+        f"{WEB}/views/RunView.tsx",
+        "  const tick = usePoll(running, 1500);",
+        "  const tick = usePoll(false, 1500);",
+        ("tests/test_web_e2e.py",),
     ),
 ]
 

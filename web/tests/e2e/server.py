@@ -2,6 +2,7 @@
 
     uv run python web/tests/e2e/server.py --port 4180            # can run the agent
     uv run python web/tests/e2e/server.py --port 4181 --no-model # replays only
+    uv run python web/tests/e2e/server.py --port 4182 --slow 3   # each model call takes 3s
 
 It is the real LocalApp over a fresh SQLite log seeded from fixtures/canonical,
 serving web/dist. Anything that runs live after a fork point or a halt runs
@@ -12,6 +13,7 @@ deterministic. --no-model is a deployment with no model at all.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import pathlib
 import sys
 import tempfile
@@ -31,17 +33,31 @@ from replay.store.views import MemoryViewStore  # noqa: E402
 ANSWER = "Reconciled. The total is $492.00 in USD."
 
 
-def scripted_agent():
-    return build_agent(model=H.ScriptedModel([H.text_response(ANSWER) for _ in range(4)]))
+class SlowModel(H.ScriptedModel):
+    """The scripted answers, each after a delay: a live run the browser can watch."""
+
+    def __init__(self, delay: float) -> None:
+        super().__init__([H.text_response(ANSWER) for _ in range(4)])
+        self.delay = delay
+
+    async def stream(self, *args, **kwargs):
+        await asyncio.sleep(self.delay)
+        async for chunk in super().stream(*args, **kwargs):
+            yield chunk
+
+
+def scripted_agent(delay: float = 0.0):
+    return build_agent(model=SlowModel(delay))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--no-model", action="store_true")
+    parser.add_argument("--slow", type=float, default=0.0, help="seconds each model call takes")
     args = parser.parse_args()
     store = open_store(pathlib.Path(tempfile.mkdtemp()) / "e2e.db", REPO / "fixtures" / "canonical")
-    runner = Runner(factory=scripted_agent, prompt=TASK, breakers=BreakerConfig(max_effects=80),
+    runner = Runner(factory=lambda: scripted_agent(args.slow), prompt=TASK, breakers=BreakerConfig(max_effects=80),
                     live=not args.no_model, model=None if args.no_model else "scripted test double")
     httpd = serve(LocalApp(store, MemoryViewStore(), runner, static_dir=REPO / "web" / "dist"), port=args.port)
     print(f"e2e server on {args.port}{' (no model)' if args.no_model else ''}", flush=True)

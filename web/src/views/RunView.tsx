@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { effects } from "../api/events";
 import { manifest } from "../api/source";
 import type { ReplayEvent, RunView as RunViewData, Trace } from "../api/types";
-import { useResource } from "../api/useResource";
+import { usePoll, useResource } from "../api/useResource";
+import { Running } from "../components/Running";
 import { checkBasis, evidenceFromLog } from "../api/basis";
 import { Answer } from "../components/Answer";
 import { BasisPanel } from "../components/BasisPanel";
@@ -35,9 +36,20 @@ export function provenanceOf(run: RunViewData): Provenance | null {
 }
 
 export function RunView({ id, step, traced }: { id: string; step: number | null; traced: boolean }) {
-  const run = useResource<RunViewData>(`/api/runs/${encodeURIComponent(id)}`);
-  const trace = useResource<Trace>(traced ? `/api/runs/${encodeURIComponent(id)}/trace/output` : null);
-  const log = useResource<{ events: ReplayEvent[] }>(`/api/runs/${encodeURIComponent(id)}/events?limit=1000`);
+  // A running run is polled: its view and its log, until it ends.
+  const [running, setRunning] = useState(false);
+  const tick = usePoll(running, 1500);
+  const run = useResource<RunViewData>(`/api/runs/${encodeURIComponent(id)}`, tick);
+  const trace = useResource<Trace>(traced ? `/api/runs/${encodeURIComponent(id)}/trace/output` : null, tick);
+  const log = useResource<{ events: ReplayEvent[] }>(`/api/runs/${encodeURIComponent(id)}/events?limit=1000`, tick);
+  const nowRunning = run.state === "ready" && run.data.summary.status === "running";
+  useEffect(() => setRunning(nowRunning), [nowRunning]);
+  const since = useMemo(() => {
+    if (run.state !== "ready" || log.state !== "ready") return null;
+    const base = run.data.metadata.eid_base ?? 0;
+    const own = (log.data.events as { eid: number; ts?: string | null }[]).find((e) => e.eid >= base && e.ts);
+    return own?.ts ? Date.parse(own.ts) : null;
+  }, [run, log]);
   const byseq = useMemo(() => (log.state === "ready" ? effects(log.data.events) : null), [log]);
   const basis = useMemo(() => {
     if (run.state !== "ready" || log.state !== "ready") return null;
@@ -122,6 +134,8 @@ export function RunView({ id, step, traced }: { id: string; step: number | null;
             <p><Link href={`/diff?a=${provenance.parent}&b=${id}`}>Compare with {provenance.parent}</Link></p>
           </div>
         )}
+
+        {summary.status === "running" && <Running since={since} steps={steps.length} />}
 
         {summary.halted && <ResumePanel runId={id} summary={summary} metadata={metadata} />}
 

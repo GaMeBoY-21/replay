@@ -4,7 +4,8 @@
 
 import { manifest } from "../api/source";
 import type { Summary } from "../api/types";
-import { useResource } from "../api/useResource";
+import { useEffect, useState } from "react";
+import { usePoll, useResource } from "../api/useResource";
 import { Empty, Failure, Loading, StatusChip } from "../components/States";
 import { Link } from "../router";
 import { roleOf } from "./RunView";
@@ -65,7 +66,10 @@ function Row({ run, child }: { run: Summary; child: boolean }) {
 }
 
 export function RunList() {
-  const runs = useResource<{ runs: Summary[] }>("/api/runs");
+  const [anyRunning, setAnyRunning] = useState(false);
+  const runs = useResource<{ runs: Summary[] }>("/api/runs", usePoll(anyRunning, 2000));
+  const running = runs.state === "ready" && runs.data.runs.some((r) => r.status === "running");
+  useEffect(() => setAnyRunning(running), [running]);
   if (runs.state === "loading") return <Loading what="runs" />;
   if (runs.state === "error") return <Failure title="Could not list the runs" message={runs.message} />;
 

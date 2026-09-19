@@ -144,6 +144,12 @@ main:focus-visible { outline-offset: -2px; }
 .text-button:hover { color: var(--ink); }
 .answer-label { font-size: var(--t1); color: var(--mute); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 
+.running-note {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s3); max-width: 90ch;
+  padding: var(--s3) var(--s4); border-radius: var(--r2);
+  background: color-mix(in srgb, var(--ch-effect) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--ch-effect) 45%, var(--rule));
+}
 .fork-note, .halt-note {
   max-width: 80ch; padding: var(--s3) var(--s4); border-radius: var(--r2);
   display: grid; gap: var(--s2);

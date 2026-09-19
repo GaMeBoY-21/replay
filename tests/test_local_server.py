@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import pathlib
 import threading
+import time
 import urllib.request
 from urllib.error import HTTPError
 
@@ -61,6 +62,17 @@ def call(base, method, path, body=None):
             return error.code, json.loads(error.read())
 
 
+def finished(base, run_id, timeout=30.0):
+    """A live run answers at once; poll it, as the UI does, until it ends."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        status = call(base, "GET", f"/api/runs/{run_id}")[1]["summary"]["status"]
+        if status != "running":
+            return status
+        time.sleep(0.05)
+    raise AssertionError(f"{run_id} was still running after {timeout}s")
+
+
 def test_the_canonical_runs_end_to_end_over_http(server):
     base, manifest = server
     wrong = manifest["wrong"]["run_id"]
@@ -85,6 +97,7 @@ def test_the_canonical_runs_end_to_end_over_http(server):
     mutation = served.value
     status, forked = call(base, "POST", f"/api/runs/{wrong}/fork", {"at_seq": at, "mutation": mutation})
     assert status == 201 and forked["at_seq"] == at and forked["at_step"] is not None
+    assert finished(base, forked["run_id"]) == "completed", "one live run at a time: let the fork end"
 
     status, listing = call(base, "GET", "/api/runs")
     assert forked["run_id"] in {row["run_id"] for row in listing["runs"]}, "the new fork was projected"
@@ -95,7 +108,8 @@ def test_the_canonical_runs_end_to_end_over_http(server):
     raised = {"loop": "max_repeats", "depth": "max_effects"}[manifest["halt"]["breaker"]]
     status, resumed = call(base, "POST", f"/api/runs/{halted}/resume",
                            {"breaker_overrides": {raised: 10**6}})
-    assert status == 201 and resumed["status"] == "completed"
+    assert status == 201 and resumed["status"] in ("running", "completed")
+    assert finished(base, resumed["run_id"]) == "completed"
 
     status, diffed = call(base, "GET", f"/api/diff?a={wrong}&b={forked['run_id']}")
     assert status == 200 and (diffed["shared_by"], diffed["shared_prefix"]) == ("storage", at)

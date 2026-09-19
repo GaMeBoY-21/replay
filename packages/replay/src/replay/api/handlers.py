@@ -31,6 +31,11 @@ class Runner:
     model - replaying recordings only - sets it False, and the run-driving routes
     refuse with 503 rather than failing inside the agent. `model` names the model
     the factory uses, for GET /capabilities.
+
+    `launch` decides how a live run is driven. None drives it to the end inside
+    the request - one request, one run, which is what a Lambda does. A server
+    that can run it in the background passes a function taking the new run's id,
+    the job that drives it, and the fields to echo; it answers the request.
     """
 
     factory: Callable[[], Any]
@@ -38,6 +43,7 @@ class Runner:
     breakers: BreakerConfig = field(default_factory=BreakerConfig)
     live: bool = True
     model: str | None = None
+    launch: Callable[[str, Callable[[], Any], dict], dict] | None = field(default=None, repr=False)
 
 
 NOT_LIVE = "This deployment replays recordings and has no model to run the agent with."
@@ -46,6 +52,14 @@ NOT_LIVE = "This deployment replays recordings and has no model to run the agent
 def _not_live(runner: Runner | None):
     """A 503 if this deployment cannot run the agent, else None."""
     return unavailable(NOT_LIVE) if runner is None or not runner.live else None
+
+
+def _launch(runner: Runner, run_id: str, job: Callable[[], Any], echo: dict[str, Any]):
+    """Drive a live run: in the request by default, or however the server launches it."""
+    if runner.launch is not None:
+        return runner.launch(run_id, job, echo)
+    outcome = job()
+    return created({**echo, "run_id": outcome.run_id, "created": True, **_outcome(outcome)})
 
 
 def capabilities(event, *, runner: Runner | None = None, **_):
@@ -84,9 +98,10 @@ def start_run(event, *, store, runner: Runner, **_):
                                                                             store.get_metadata(run_id))})
     if (refused := _not_live(runner)) is not None:
         return refused
-    outcome = runs.record(store, runner.factory, body.get("prompt", runner.prompt), run_id=run_id,
-                          breakers=Breakers(runner.breakers))
-    return created({"run_id": outcome.run_id, "created": True, **_outcome(outcome)})
+    run_id = run_id or runs.new_run_id()
+    prompt = body.get("prompt", runner.prompt)
+    return _launch(runner, run_id, lambda: runs.record(store, runner.factory, prompt, run_id=run_id,
+                                                       breakers=Breakers(runner.breakers)), {"run_id": run_id})
 
 
 def list_runs(event, *, views, **_):
@@ -153,9 +168,9 @@ def fork_run(event, *, store, runner: Runner, **_):
         return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})
     if (refused := _not_live(runner)) is not None:
         return refused
-    outcome = runs.fork(store, parent, seq, Result(value=body["mutation"]), runner.factory, runner.prompt,
-                        run_id=child, breakers=Breakers(runner.breakers))
-    return created({**echo, "created": True, **_outcome(outcome)})
+    mutation = Result(value=body["mutation"])
+    return _launch(runner, child, lambda: runs.fork(store, parent, seq, mutation, runner.factory, runner.prompt,
+                                                    run_id=child, breakers=Breakers(runner.breakers)), echo)
 
 
 def resume_run(event, *, store, runner: Runner, **_):
@@ -183,9 +198,8 @@ def resume_run(event, *, store, runner: Runner, **_):
         return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})
     if (refused := _not_live(runner)) is not None:
         return refused
-    outcome = runs.resume(store, run_id, runner.factory, runner.prompt, breaker_overrides=overrides,
-                          new_run_id_=child)
-    return created({**echo, "created": True, **_outcome(outcome)})
+    return _launch(runner, child, lambda: runs.resume(store, run_id, runner.factory, runner.prompt,
+                                                      breaker_overrides=overrides, new_run_id_=child), echo)
 
 
 # ---------------------------------------------------------------- trace and diff

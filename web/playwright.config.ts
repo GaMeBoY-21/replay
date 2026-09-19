@@ -23,5 +23,11 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 60_000,
     },
+    {
+      command: "cd .. && uv run python web/tests/e2e/server.py --port 4182 --slow 3",
+      url: "http://127.0.0.1:4182/api/runs",
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
   ],
 });
