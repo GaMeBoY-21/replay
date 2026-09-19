@@ -663,7 +663,11 @@ CLAIMS: list[Claim] = [
         f"{ROOT_PKG}/api/handlers.py",
         "    if _exists(store, child):\n"
         '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
+        "    if (refused := _not_live(runner)) is not None:\n"
+        "        return refused\n"
         "    outcome = runs.fork(",
+        "    if (refused := _not_live(runner)) is not None:\n"
+        "        return refused\n"
         "    outcome = runs.fork(",
         ("tests/test_api.py",),
     ),
@@ -686,7 +690,11 @@ CLAIMS: list[Claim] = [
         f"{ROOT_PKG}/api/handlers.py",
         "    if _exists(store, child):\n"
         '        return ok({**echo, "created": False, "status": store.get_metadata(child).status.value})\n'
+        "    if (refused := _not_live(runner)) is not None:\n"
+        "        return refused\n"
         "    outcome = runs.resume(",
+        "    if (refused := _not_live(runner)) is not None:\n"
+        "        return refused\n"
         "    outcome = runs.resume(",
         ("tests/test_api.py",),
     ),
