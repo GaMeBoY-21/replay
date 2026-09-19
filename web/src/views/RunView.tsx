@@ -3,7 +3,9 @@ import { effects } from "../api/events";
 import { manifest } from "../api/source";
 import type { ReplayEvent, RunView as RunViewData, Trace } from "../api/types";
 import { useResource } from "../api/useResource";
+import { checkBasis, evidenceFromLog } from "../api/basis";
 import { Answer } from "../components/Answer";
+import { BasisPanel } from "../components/BasisPanel";
 import { RunGraph } from "../components/RunGraph";
 import { TracePanel } from "../components/TracePanel";
 import { Failure, Loading, StatusChip } from "../components/States";
@@ -36,6 +38,11 @@ export function RunView({ id, step, traced }: { id: string; step: number | null;
   const trace = useResource<Trace>(traced ? `/api/runs/${encodeURIComponent(id)}/trace/output` : null);
   const log = useResource<{ events: ReplayEvent[] }>(`/api/runs/${encodeURIComponent(id)}/events?limit=1000`);
   const byseq = useMemo(() => (log.state === "ready" ? effects(log.data.events) : null), [log]);
+  const basis = useMemo(() => {
+    if (run.state !== "ready" || log.state !== "ready") return null;
+    const e = evidenceFromLog(run.data, log.data.events);
+    return checkBasis(e.basis, e.currency, e.writeStep, e.read);
+  }, [run, log]);
   const asked = useMemo(() => {
     if (!byseq || run.state !== "ready") return null;
     return new Map(
@@ -124,11 +131,24 @@ export function RunView({ id, step, traced }: { id: string; step: number | null;
           </div>
         )}
 
-        {summary.answer ? (
-          <Answer text={summary.answer} />
-        ) : (
-          <p className="quiet">This run gave no final answer.</p>
-        )}
+        <div className="run-summary">
+          {summary.answer ? (
+            <Answer text={summary.answer} />
+          ) : (
+            <p className="quiet">This run gave no final answer.</p>
+          )}
+
+          {basis && (
+            <BasisPanel
+              check={basis}
+              source={
+                provenance?.fromRun && basis.writeStep !== null && sharedThrough !== null && basis.writeStep > sharedThrough
+                  ? provenance.fromRun
+                  : null
+              }
+            />
+          )}
+        </div>
       </header>
 
       <div className="run-body">

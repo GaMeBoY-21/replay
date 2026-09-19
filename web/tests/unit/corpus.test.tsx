@@ -32,7 +32,8 @@ describe("the corpus view", () => {
 
   it("lists each wrong run with where its currency write landed", () => {
     open();
-    const table = screen.getByRole("table");
+    const section = screen.getByRole("heading", { name: "The wrong runs, and where the currency was written" }).closest("section")!;
+    const table = within(section).getByRole("table");
     const rows = within(table).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell").map((c) => c.textContent));
     expect(rows).toEqual([
       ['"USD"', "10", "$41,000", "yes"],

@@ -348,14 +348,14 @@
    "answer": "The reconciliation for invoice `INV-2291` has been successfully completed and submitted.\n\nSummary of the actions:\n- Verified that the original currency is INR.\n- Converted the total from INR to USD (41,000 INR = 492.0 USD).\n- Recorded the converted amount in USD on the worksheet.\n- Submitted the reconciliation.\n\nThe invoice `INV-2291` from Meridian Supplies now shows a total of **492.0 USD** after conversion and recording.",
    "assumption_basis": "Invoice Header of INV-2291 with issued date 2026-08-28 and due date 2026-09-27",
    "assumption_step": 9,
-   "basis_stated": "invoice.header.currency",
+   "basis_stated": "Invoice Header of INV-2291 with issued date 2026-08-28 and due date 2026-09-27",
    "converted_total": 492.0,
    "currencies_recorded": [
     "INR",
     "INR"
    ],
    "currency_used": "INR",
-   "currency_write_step": 12,
+   "currency_write_step": 9,
    "overall": "right",
    "read": [
     {

@@ -843,6 +843,28 @@ CLAIMS: list[Claim] = [
         "  const placeholder = false;",
         ("tests/test_web.py",),
     ),
+    Claim(
+        "a basis citing the header is checked against the header the run read",
+        f"{WEB}/api/basis.ts",
+        '    else if (header.result && "currency" in header.result)',
+        "    else if (header.result)",
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "evidence a run had read but did not cite is named",
+        f"{WEB}/api/basis.ts",
+        "  if (remittance && !citesBank) uncited.push(",
+        "  if (false) uncited.push(",
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "a run's stated basis is the one beside the currency write its answer depends on",
+        "web/scripts/record_fixtures.py",
+        '            "basis_stated": basis_of(events, decisive_currency_write(events)),',
+        '            "basis_stated": next((w.value for w in reversed(events) if isinstance(w, MemoryWrite)'
+        ' and w.key == "invoice.currency.basis"), None),',
+        ("tests/test_web.py",),
+    ),
 ]
 
 

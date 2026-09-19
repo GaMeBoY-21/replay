@@ -70,11 +70,33 @@ def tool_result_json(event: EffectCompleted):
         return None
 
 
+def decisive_currency_write(events):
+    """The currency write the run's answer depends on: the one its last conversion
+    read, or - for a run that never converted - the last one it made."""
+    by_eid = {e.eid: e for e in events}
+    writes = [e for e in events if isinstance(e, MemoryWrite) and e.key == "invoice.currency"]
+    totals = [e for e in events if isinstance(e, MemoryWrite) and e.key == "report.total"]
+    if totals:
+        for read_eid in totals[-1].reads:
+            read = by_eid.get(read_eid)
+            if getattr(read, "key", None) == "invoice.currency" and read.source is not None:
+                return by_eid[read.source]
+    return writes[-1] if writes else None
+
+
+def basis_of(events, write) -> str | None:
+    """The basis recorded beside a currency write: the next basis write after it."""
+    if write is None:
+        return None
+    return next((e.value for e in events if isinstance(e, MemoryWrite)
+                 and e.key == "invoice.currency.basis" and e.eid > write.eid), None)
+
+
 def evidence_before_currency(events) -> dict:
     """What the run had read when it recorded the currency, from its log alone."""
     steps = step_index(events)
-    writes = [e for e in events if isinstance(e, MemoryWrite) and e.key == "invoice.currency"]
-    cutoff = writes[-1].eid if writes else None
+    write = decisive_currency_write(events)
+    cutoff = write.eid if write is not None else None
     requested = {e.seq: e for e in events if isinstance(e, EffectRequested)}
     read = []
     for event in events:
@@ -108,8 +130,7 @@ def corpus() -> dict:
             "submitted": row["submitted"],
             "vendor_lookups": row["vendor_lookups"],
             "answer": row["answer"],
-            "basis_stated": next((w.value for w in reversed(events) if isinstance(w, MemoryWrite)
-                                  and w.key == "invoice.currency.basis"), None),
+            "basis_stated": basis_of(events, decisive_currency_write(events)),
             **evidence_before_currency(events),
         })
     return {"provider": provider, "runs": stats["runs"], "overall": stats["overall"],

@@ -3,7 +3,9 @@
 // was free to get it right and five times in eleven did not, in four different
 // ways - so every figure here is counted from the committed runs, not typed in.
 
+import { checkBasis } from "../api/basis";
 import { corpus, manifest } from "../api/source";
+import { Citations } from "../components/BasisPanel";
 import type { CorpusRow } from "../api/types";
 import { Link } from "../router";
 
@@ -137,6 +139,8 @@ export function CorpusView() {
         </p>
       </section>
 
+      <SaidAndShown />
+
       <section aria-labelledby="shape-title" className="corpus-section corpus-shape">
         <h2 id="shape-title">The shape of the runs</h2>
         <figure className="dots" aria-labelledby="steps-caption">
@@ -173,5 +177,67 @@ export function CorpusView() {
         nothing for a trace to find.
       </footer>
     </article>
+  );
+}
+
+function SaidAndShown() {
+  const checks = corpus.rows.map((row) => ({
+    row,
+    check: checkBasis(row.basis_stated, writtenCurrency(row)?.label ?? null, row.currency_write_step, row.read),
+  }));
+  const right = checks.filter(({ row }) => row.overall === "right");
+  const grounded = right.filter(({ check }) =>
+    check.citations.some((c) => c.verdict === "supported") && !check.citations.some((c) => c.verdict === "unsupported"),
+  );
+  const invented = right.filter(({ check }) => check.citations.some((c) => c.verdict === "unsupported"));
+  const wrong = manifest.wrong.run_id;
+  const wrongCheck = checks.find(({ row }) => row.run_id === wrong)?.check;
+
+  return (
+    <section aria-labelledby="said-title" className="corpus-section">
+      <h2 id="said-title">What each run said, and what its log shows</h2>
+      <p className="basis-finding">
+        <strong>The stated reasons are unreliable in both directions.</strong> Of {right.length} right runs,{" "}
+        {spelled(invented.length)} cite a record that does not say what they claim, and{" "}
+        {grounded.length === 1 ? (
+          <>only <span className="mono">{grounded[0].row.run_id}</span> names</>
+        ) : (
+          <>{spelled(grounded.length)} name</>
+        )}{" "}
+        the evidence it actually had.
+        {wrongCheck?.uncited.length ? (
+          <> The wrong run, <span className="mono">{wrong}</span>, had read the bank details and called its choice a guess.</>
+        ) : null}
+      </p>
+      <div className="diff-scroll">
+        <table className="list-table said-table">
+          <thead>
+            <tr>
+              <th scope="col">Run</th>
+              <th scope="col">Wrote</th>
+              <th scope="col">What it said</th>
+              <th scope="col">What the log shows</th>
+            </tr>
+          </thead>
+          <tbody>
+            {checks.map(({ row, check }) => (
+              <tr key={row.run_id}>
+                <th scope="row">
+                  <RunName id={row.run_id} />
+                  <span className={`outcome outcome-${row.overall}`}>{row.overall}</span>
+                </th>
+                <td className="mono">{check.currency ? <span className="value">{check.currency}</span> : "—"}</td>
+                <td>{check.basis ? <q>{check.basis}</q> : <span className="quiet">no basis</span>}</td>
+                <td><Citations check={check} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="fineprint">
+        What a basis cites is found by its words; what the run had read is its recorded tool results before the
+        currency write the answer depends on.
+      </p>
+    </section>
   );
 }
