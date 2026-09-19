@@ -815,6 +815,20 @@ CLAIMS: list[Claim] = [
         "          {false ? (",
         ("tests/test_web.py",),
     ),
+    Claim(
+        "the run list places a fork beneath the run it was forked from",
+        f"{WEB}/views/RunList.tsx",
+        "    ordered.push({ run, child: depth > 0 });",
+        "    ordered.push({ run, child: false });",
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "the run list names the breaker that halted a run",
+        f"{WEB}/views/RunList.tsx",
+        "        {run.halted ? (",
+        "        {false ? (",
+        ("tests/test_web.py",),
+    ),
 ]
 
 

@@ -3,6 +3,7 @@ import { currentMode, type Mode } from "./api/source";
 import { Empty } from "./components/States";
 import { Link, useRoute, type Route } from "./router";
 import { DiffView } from "./views/DiffView";
+import { RunList } from "./views/RunList";
 import { RunView } from "./views/RunView";
 
 function Page({ route }: { route: Route }) {
@@ -12,6 +13,7 @@ function Page({ route }: { route: Route }) {
     case "diff":
       return <DiffView a={route.a} b={route.b} />;
     case "runs":
+      return <RunList />;
     case "corpus":
       return <Empty title="Not built yet">This view comes next.</Empty>;
     case "missing":
