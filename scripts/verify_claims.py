@@ -829,6 +829,20 @@ CLAIMS: list[Claim] = [
         "        {false ? (",
         ("tests/test_web.py",),
     ),
+    Claim(
+        "the corpus counts every wrong run, not only the ones that wrote USD",
+        f"{WEB}/views/CorpusView.tsx",
+        '  const wrong = rows.filter((r) => r.overall === "wrong");',
+        '  const wrong = rows.filter((r) => r.overall === "wrong" && writtenCurrency(r)?.label === "USD");',
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "a template placeholder is named as one, not shown as a currency",
+        f"{WEB}/views/CorpusView.tsx",
+        "  const placeholder = /^<.*>$/.test(value.trim());",
+        "  const placeholder = false;",
+        ("tests/test_web.py",),
+    ),
 ]
 
 

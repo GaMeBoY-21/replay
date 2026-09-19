@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { currentMode, type Mode } from "./api/source";
 import { Empty } from "./components/States";
 import { Link, useRoute, type Route } from "./router";
+import { CorpusView } from "./views/CorpusView";
 import { DiffView } from "./views/DiffView";
 import { RunList } from "./views/RunList";
 import { RunView } from "./views/RunView";
@@ -15,7 +16,7 @@ function Page({ route }: { route: Route }) {
     case "runs":
       return <RunList />;
     case "corpus":
-      return <Empty title="Not built yet">This view comes next.</Empty>;
+      return <CorpusView />;
     case "missing":
       return (
         <Empty title={`Nothing lives at ${route.path}`}>
