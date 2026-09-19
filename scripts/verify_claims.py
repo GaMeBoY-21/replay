@@ -922,6 +922,13 @@ CLAIMS: list[Claim] = [
         "  --ink: #E6EDF4; --mute: #93A4B8; --faint: #3A4C61;",
         ("tests/test_web_e2e.py",),
     ),
+    Claim(
+        "--replay-only serves the recordings and runs nothing live",
+        f"{ROOT_PKG}/local/__main__.py",
+        "                  live=not replay_only, model=None if replay_only else OLLAMA_MODEL)",
+        "                  live=True, model=None if replay_only else OLLAMA_MODEL)",
+        ("tests/test_local_server.py",),
+    ),
 ]
 
 

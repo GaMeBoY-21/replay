@@ -18,7 +18,7 @@ import pytest
 import strands_harness as H
 from replay.api import Runner
 from replay.kernel import BreakerConfig
-from replay.local.__main__ import open_store
+from replay.local.__main__ import main, make_runner, open_store
 from replay.local.server import LocalApp, serve
 from replay.scenario import TASK, load, substitution
 from replay.scenario.live import build_agent
@@ -119,3 +119,45 @@ def test_seeding_loads_every_canonical_run_once(tmp_path):
     assert {m.run_id for m in store.list_runs()} == expected
     again = open_store(tmp_path / "local.db", CANONICAL)
     assert len(again.read(manifest["wrong"]["run_id"])) == len(store.read(manifest["wrong"]["run_id"]))
+
+
+def test_replay_only_serves_the_recordings_and_runs_nothing_live(tmp_path):
+    """--replay-only: /capabilities says not live, and fork and resume are refused
+    with the reason - the state the UI shows as unavailable - while every read works."""
+    store = open_store(tmp_path / "local.db", CANONICAL)
+    app = LocalApp(store, MemoryViewStore(), make_runner(replay_only=True))
+    httpd = serve(app, port=0)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+    try:
+        manifest = json.loads((CANONICAL / "manifest.json").read_text())
+        status, caps = call(base, "GET", "/api/capabilities")
+        assert (status, caps["live"], caps["model"]) == (200, False, None)
+        halted = manifest["halted"]["run_id"]
+        status, body = call(base, "POST", f"/api/runs/{halted}/resume", {"breaker_overrides": {"max_effects": 80}})
+        assert status == 503 and "replays recordings" in body["error"]
+        assert call(base, "GET", f"/api/runs/{manifest['wrong']['run_id']}/trace/output")[0] == 200
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_the_flag_reaches_the_runner():
+    assert make_runner(replay_only=True).live is False
+    assert make_runner().live is True
+
+
+def test_the_command_line_accepts_the_flag(monkeypatch, tmp_path):
+    started = {}
+
+    class Stop(Exception):
+        pass
+
+    def fake_serve(app, host, port):
+        started["live"] = app.runner.live
+        raise Stop
+
+    monkeypatch.setattr("replay.local.__main__.serve", fake_serve)
+    with pytest.raises(Stop):
+        main(["--db", str(tmp_path / "x.db"), "--replay-only"])
+    assert started == {"live": False}
