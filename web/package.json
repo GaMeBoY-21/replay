@@ -1,0 +1,38 @@
+{
+  "name": "replay-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "types": "cd .. && uv run python web/scripts/schema.py && cd web && json2ts -i src/types/schema.json -o src/types/events.d.ts --unreachableDefinitions --no-additionalProperties",
+    "fixtures": "cd .. && uv run python web/scripts/record_fixtures.py",
+    "fonts": "node scripts/copy_fonts.mjs",
+    "dev": "vite",
+    "build": "npm run types && tsc -b && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "d3-scale": "^4.0.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@playwright/test": "^1.63.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/d3-scale": "^4.0.9",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.1.0",
+    "json-schema-to-typescript": "^16.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

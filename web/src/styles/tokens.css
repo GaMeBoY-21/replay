@@ -1,0 +1,78 @@
+/* Tokens from docs/DESIGN.md. Every colour, size, space and radius in the app
+   comes from here; tinted surfaces derive from a token with color-mix(), never a
+   literal hex, because literal tints are what rendered dark-on-dark in light mode.
+
+   Measured contrast, WCAG 2.x (tests/e2e/a11y.spec.ts checks the rendered pages
+   with axe; these are the design-time numbers, computed from the hex values):
+
+     on --ground   ink   mute  faint signal effect model memory trace fault  ok
+       dark        16.3  7.6   5.6   6.7    7.7    6.4   10.4   6.7   6.1  10.0
+       light       17.2  7.2   4.9   4.5    5.4    4.9    5.5   6.8   5.4   5.7
+     on --raise
+       dark        14.0  6.5   4.8   5.8    6.6    5.5    9.0   5.7   5.3   8.6
+       light       16.1  6.8   4.6   4.2    5.1    4.6    5.1   6.4   5.1   5.4
+
+   FAILS: light --signal on --raise is 4.2:1, under 4.5. Orange text therefore
+   never sits on a raised surface; the origin marker on the graph is a shape,
+   and its label is --ink.                                                       */
+
+@font-face { font-family: "Archivo"; font-weight: 400; font-display: swap;
+  src: url("../fonts/archivo-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Archivo"; font-weight: 500; font-display: swap;
+  src: url("../fonts/archivo-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Archivo"; font-weight: 600; font-display: swap;
+  src: url("../fonts/archivo-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Archivo"; font-weight: 700; font-display: swap;
+  src: url("../fonts/archivo-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap;
+  src: url("../fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap;
+  src: url("../fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 600; font-display: swap;
+  src: url("../fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2"); }
+
+:root {
+  /* ground — instrument panel at night; cyan-biased, never neutral grey */
+  --ground: #0A0F14; --panel: #0F1720; --raise: #14202B; --rule: #1E2C3A;
+  --ink: #E6EDF4; --mute: #93A4B8; --faint: #7A8CA1;
+
+  /* accent — international orange. Brand and trace origin. Never a channel. */
+  --signal: #FF6A2B;
+
+  /* channels — semantic, one hue per kind of event */
+  --ch-effect: #4FA8FF;   /* tool call */
+  --ch-model: #8496AB;    /* model call */
+  --ch-memory: #F2B441;   /* memory write */
+  --ch-trace: #B47CFF;    /* provenance path */
+  --ch-fault: #FF5555;    /* breaker, bad output */
+  --ch-ok: #35D39A;       /* completed */
+
+  --t1: 11px; --t2: 12.5px; --t3: 14px; --t4: 17px; --t5: 22px; --t6: 30px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --r1: 2px; --r2: 6px; --rp: 999px;
+
+  --sans: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ground: #F3F6F8; --panel: #FFFFFF; --raise: #E9EFF4; --rule: #CFD9E2;
+    --ink: #0B131B; --mute: #42536A; --faint: #5C6D82;
+    --signal: #CC3F09;
+    --ch-effect: #0B62C4; --ch-model: #5C6D82; --ch-memory: #8A5A00;
+    --ch-trace: #7226C9; --ch-fault: #BE2A2A; --ch-ok: #0F6E51;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --ground: #F3F6F8; --panel: #FFFFFF; --raise: #E9EFF4; --rule: #CFD9E2;
+  --ink: #0B131B; --mute: #42536A; --faint: #5C6D82;
+  --signal: #CC3F09;
+  --ch-effect: #0B62C4; --ch-model: #5C6D82; --ch-memory: #8A5A00;
+  --ch-trace: #7226C9; --ch-fault: #BE2A2A; --ch-ok: #0F6E51;
+  color-scheme: light;
+}

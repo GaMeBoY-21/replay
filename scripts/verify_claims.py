@@ -50,6 +50,7 @@ EVENTS = "packages/events/src/replay_events"
 STORE = "packages/replay/src/replay/store"
 AGENT = "packages/replay/src/replay/agent"
 ROOT_PKG = "packages/replay/src/replay"
+WEB = "web/src"
 
 
 # Paths whose claims are about storage. Their tests run against every backend;
@@ -750,6 +751,34 @@ CLAIMS: list[Claim] = [
         "    return max(e.seq for e in events",
         "    return min(e.seq for e in events",
         ("tests/test_scenario.py",),
+    ),
+    Claim(
+        "the web fixtures are the API's own responses, and drift is caught",
+        "web/scripts/record_fixtures.py",
+        '    return {"status": response["statusCode"], "body": json.loads(response["body"])}',
+        '    return {"status": response["statusCode"], "body": {**json.loads(response["body"]), "_": 1}}',
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "a model step names the tools its recorded response asked for",
+        f"{WEB}/api/events.ts",
+        "    if (start) calls.push({ name: start.name, input: \"\" });",
+        "",
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "the fork says which run its substituted response came from",
+        f"{WEB}/views/RunView.tsx",
+        "    return { parent, fromRun: from.run_id, fromStep: from.step };",
+        "    return { parent, fromRun: null, fromStep: null };",
+        ("tests/test_web.py",),
+    ),
+    Claim(
+        "the run graph is operable from the keyboard",
+        f"{WEB}/components/RunGraph.tsx",
+        'onKeyDown={move} aria-label={`Steps of ${runId}`}',
+        'aria-label={`Steps of ${runId}`}',
+        ("tests/test_web.py",),
     ),
 ]
 

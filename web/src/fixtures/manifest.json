@@ -1,0 +1,56 @@
+{
+ "fork": {
+  "at_seq": 8,
+  "at_step": 9,
+  "outcome": "right",
+  "parent": "qwen-00",
+  "run_id": "qwen-00-fork-8",
+  "substituted_from": {
+   "run_id": "qwen-07",
+   "seq": 8,
+   "step": 9
+  }
+ },
+ "halt": {
+  "attempts": [
+   {
+    "run_id": "halt-00",
+    "status": "completed"
+   },
+   {
+    "run_id": "halt-01",
+    "status": "completed"
+   },
+   {
+    "run_id": "halt-02",
+    "status": "completed"
+   },
+   {
+    "run_id": "halt-03",
+    "status": "tripped"
+   }
+  ],
+  "breaker": "depth",
+  "ceiling": 15
+ },
+ "halted": {
+  "run_id": "halt-03"
+ },
+ "model": "qwen2.5:14b",
+ "right": {
+  "run_id": "qwen-07",
+  "why": "The only right run whose stated basis is the evidence it actually had: 'Assumed based on bank information provided by vendor.' Its first three tool calls match qwen-00's. The other five right runs cite fields that do not exist or facts that do not bear on the currency."
+ },
+ "roots": [
+  "qwen-00",
+  "qwen-07",
+  "halt-00",
+  "halt-01",
+  "halt-02",
+  "halt-03"
+ ],
+ "wrong": {
+  "run_id": "qwen-00",
+  "why": "The only run that recorded USD, the 83x error on screen. It fetched the remittance details (an HDFC branch in Pune) at step 4 and still wrote invoice.currency = USD at step 10, with the basis 'Assumption based on standard business practices.'"
+ }
+}
