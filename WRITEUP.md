@@ -86,8 +86,9 @@ breakers, the API and projector, the local server, the frontend, the AWS stack â
 recorded during the event against a local model, including the ones that failed, which are kept as evidence rather
 than deleted.
 
-The suite has 539 tests. Every load-bearing claim in the documentation has a test behind it, and `make verify`
-breaks each claim on purpose and requires the suite to go red for it: 135 claims, none unguarded.
+The suite is 542 passing tests and 3 skipped (runs from an earlier corpus that never finished, so there is nothing
+to replay). Every load-bearing claim in the documentation has a test behind it, and `make verify` breaks each claim
+on purpose and requires the suite to go red for it: 135 claims, none unguarded.
 
 ## AI tools used
 
