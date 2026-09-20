@@ -35,3 +35,5 @@ web/src/types/events.d.ts
 packages/events/schema.json
 # Lambda bundles, requirement lists and other build scratch.
 .scratch/
+# Local databases, including any run while demoing.
+*.db
