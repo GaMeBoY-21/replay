@@ -1,4 +1,4 @@
-# Replay — a flight recorder and rewind button for AI agents
+# Replay — a recorder and rewind button for AI agents
 
 **Live:** https://3hy4acxf74.execute-api.ap-south-1.amazonaws.com
 
